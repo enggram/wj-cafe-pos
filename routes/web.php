@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BackupController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\InventoryController;
@@ -72,5 +73,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
         Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+
+        // Database Backup & Restore
+        Route::get('/backup', [BackupController::class, 'index'])->name('backup.index');
+        Route::get('/backup/download/sqlite', [BackupController::class, 'downloadSqlite'])->name('backup.download.sqlite');
+        Route::get('/backup/download/sql', [BackupController::class, 'downloadSql'])->name('backup.download.sql');
+        Route::post('/backup/restore', [BackupController::class, 'restore'])->name('backup.restore');
     });
 });

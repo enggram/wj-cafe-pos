@@ -107,6 +107,7 @@ const allLinks = [
   { href: '/reports/sales',       label: 'Sales',     adminOnly: true },
   { href: '/reports/profit-loss', label: 'P&L',       adminOnly: true },
   { href: '/users',               label: 'Users',     adminOnly: true },
+  { href: '/backup',              label: 'Backup',    adminOnly: true },
 ];
 
 const visibleLinks = computed(() => {
