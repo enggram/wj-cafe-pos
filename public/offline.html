@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - WhiteJersey Cafe POS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #0a0a0a;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .container {
+            text-align: center;
+            max-width: 400px;
+        }
+        .icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            border-radius: 50%;
+            background-color: #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .icon svg {
+            width: 40px;
+            height: 40px;
+            fill: #dc2626;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.75rem;
+            color: #dc2626;
+        }
+        p {
+            color: #a3a3a3;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+        .retry-btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background-color: #dc2626;
+            color: #ffffff;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            min-width: 44px;
+            min-height: 44px;
+        }
+        .retry-btn:hover {
+            background-color: #b91c1c;
+        }
+        .retry-btn:focus {
+            outline: 2px solid #dc2626;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M1.998 4.94l1.06-1.06 16.97 16.97-1.06 1.06-2.4-2.4c-.53.07-1.07.11-1.62.11C9.12 19.62 4.26 16.3 2 11.62c.9-1.87 2.18-3.49 3.73-4.75L1.998 4.94zM12.946 15.07l-4.02-4.02c-.08.33-.12.67-.12 1.02 0 2.37 1.7 4.34 3.94 4.76l.2-1.76zm7.06-1.12c.5-.84.9-1.73 1.19-2.68a12.92 12.92 0 00-9.42-7.52l-1.48 1.48a5.5 5.5 0 014.95 5.39c0 .9-.22 1.76-.6 2.52l1.36 1.36zm-6.32-6.32a3.5 3.5 0 00-3.32 3.32l3.32-3.32z"/>
+            </svg>
+        </div>
+        <h1>You're Offline</h1>
+        <p>WhiteJersey Cafe POS requires an internet connection for this page. Please check your connection and try again.</p>
+        <button class="retry-btn" onclick="window.location.reload()">Retry Connection</button>
+    </div>
+</body>
+</html>
