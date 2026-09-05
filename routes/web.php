@@ -20,8 +20,12 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    // Home → table overview
-    Route::get('/', fn () => redirect()->route('orders.tables'));
+    // Home → role-based landing (admin: menu, staff: orders)
+    Route::get('/', function () {
+        return redirect(auth()->user()->isAdmin()
+            ? route('menu.index')
+            : route('orders.tables'));
+    });
 
     // Orders & Billing — staff + admin
     Route::get('/orders/tables', [OrderController::class, 'tableOverview'])->name('orders.tables');

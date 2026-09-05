@@ -12,7 +12,7 @@ class AuthController extends Controller
     public function showLogin()
     {
         if (Auth::check()) {
-            return redirect()->route('orders.tables');
+            return redirect($this->homeFor(Auth::user()));
         }
         return Inertia::render('Auth/Login');
     }
@@ -32,7 +32,8 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('orders.tables'));
+        // Admins land on the Menu page; staff land on the table overview.
+        return redirect($this->homeFor(Auth::user()));
     }
 
     public function logout(Request $request)
@@ -42,5 +43,15 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('login');
+    }
+
+    /**
+     * Decide where a user lands after login based on their role.
+     */
+    private function homeFor($user): string
+    {
+        return $user->isAdmin()
+            ? route('menu.index')
+            : route('orders.tables');
     }
 }
