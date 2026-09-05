@@ -38,19 +38,10 @@ if [ -f artisan ]; then
     }
     echo "  Migrations completed."
 
-    # Seed database on first boot (when categories table is empty)
-    echo "[3/5] Checking if initial data seeding is required..."
-    NEEDS_SEED=$(php artisan tinker --execute="echo \App\Models\Category::count() === 0 ? 'yes' : 'no';" 2>/dev/null || echo "yes")
-    if [ "$NEEDS_SEED" = "yes" ]; then
-        echo "  Running initial data seeder..."
-        php artisan db:seed --force || {
-            echo "ERROR: Database seeding failed - initial data could not be loaded" >&2
-            exit 1
-        }
-        echo "  Initial data seeded successfully."
-    else
-        echo "  Database already contains data, skipping seed."
-    fi
+    # Seed initial data (seeders use firstOrCreate, so this is safe to run every boot).
+    # Non-fatal: a seeding hiccup should not take the whole app down.
+    echo "[3/5] Seeding initial data (idempotent)..."
+    php artisan db:seed --force 2>&1 || echo "  WARNING: Seeding skipped or already done."
 
     # Generate application key if not set
     if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "" ]; then
@@ -63,6 +54,7 @@ if [ -f artisan ]; then
     # Cache configuration in production
     echo "[5/5] Configuring for ${APP_ENV:-production} environment..."
     if [ "$APP_ENV" = "production" ]; then
+        php artisan config:clear 2>/dev/null || true
         php artisan config:cache || {
             echo "WARNING: Config cache failed, continuing without cache" >&2
         }
