@@ -23,6 +23,16 @@ class InitialDataSeeder extends Seeder
             ]
         );
 
+        // Default staff account
+        User::firstOrCreate(
+            ['email' => 'staff@wjcafe.com'],
+            [
+                'name'     => 'Cafe Staff',
+                'password' => Hash::make('admin@123'),
+                'role'     => UserRole::Staff,
+            ]
+        );
+
         // Default categories
         foreach (['Tea', 'Coffee', 'Juices', 'Food'] as $name) {
             Category::firstOrCreate(['name' => $name], ['is_active' => true]);
