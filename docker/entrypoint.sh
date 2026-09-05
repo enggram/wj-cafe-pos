@@ -11,25 +11,21 @@ export NGINX_PORT="${PORT:-80}"
 envsubst '\$NGINX_PORT' < /etc/nginx/sites-available/default.template > /etc/nginx/sites-available/default
 echo "Nginx configured to listen on port ${NGINX_PORT}"
 
+# ── SQLite database setup ──
+# The DB file lives on a persistent volume so data survives redeploys.
+# DB_DATABASE should be an absolute path (e.g. /var/www/html/storage/app/database/database.sqlite).
+DB_FILE="${DB_DATABASE:-/var/www/html/storage/app/database/database.sqlite}"
+echo "[1/5] Ensuring SQLite database exists at ${DB_FILE}..."
+mkdir -p "$(dirname "$DB_FILE")"
+if [ ! -f "$DB_FILE" ]; then
+    touch "$DB_FILE"
+    echo "  Created new SQLite database file."
+else
+    echo "  Existing SQLite database found."
+fi
+chown -R www-data:www-data "$(dirname "$DB_FILE")" 2>/dev/null || true
+chmod -R 775 "$(dirname "$DB_FILE")" 2>/dev/null || true
 
-# Wait for MySQL to be ready
-echo "[1/5] Waiting for database to be ready..."
-MAX_RETRIES=30
-RETRY_COUNT=0
-
-while ! php -r "try { new PDO('mysql:host=' . getenv('DB_HOST') . ';port=' . (getenv('DB_PORT') ?: '3306') . ';dbname=' . getenv('DB_DATABASE'), getenv('DB_USERNAME'), getenv('DB_PASSWORD')); echo 'ok'; } catch (Exception \$e) { exit(1); }" 2>/dev/null; do
-    RETRY_COUNT=$((RETRY_COUNT + 1))
-    if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
-        echo "ERROR: Database service failed to start - could not connect after ${MAX_RETRIES} attempts ($(($MAX_RETRIES * 2))s elapsed)" >&2
-        exit 1
-    fi
-    echo "  Database not ready yet... retrying ($RETRY_COUNT/$MAX_RETRIES)"
-    sleep 2
-done
-
-echo "  Database connection established."
-
-# Run migrations and seed if artisan exists
 if [ -f artisan ]; then
     echo "[2/5] Running database migrations..."
     php artisan migrate --force || {
@@ -38,12 +34,9 @@ if [ -f artisan ]; then
     }
     echo "  Migrations completed."
 
-    # Seed initial data (seeders use firstOrCreate, so this is safe to run every boot).
-    # Non-fatal: a seeding hiccup should not take the whole app down.
     echo "[3/5] Seeding initial data (idempotent)..."
     php artisan db:seed --force 2>&1 || echo "  WARNING: Seeding skipped or already done."
 
-    # Generate application key if not set
     if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "" ]; then
         echo "[4/5] Generating application key..."
         php artisan key:generate --force
@@ -51,22 +44,14 @@ if [ -f artisan ]; then
         echo "[4/5] Application key already set."
     fi
 
-    # Cache configuration in production
     echo "[5/5] Configuring for ${APP_ENV:-production} environment..."
     if [ "$APP_ENV" = "production" ]; then
         php artisan config:clear 2>/dev/null || true
-        php artisan config:cache || {
-            echo "WARNING: Config cache failed, continuing without cache" >&2
-        }
-        php artisan route:cache || {
-            echo "WARNING: Route cache failed, continuing without cache" >&2
-        }
-        php artisan view:cache || {
-            echo "WARNING: View cache failed, continuing without cache" >&2
-        }
+        php artisan config:cache || echo "WARNING: Config cache failed" >&2
+        php artisan route:cache  || echo "WARNING: Route cache failed" >&2
+        php artisan view:cache   || echo "WARNING: View cache failed" >&2
         echo "  Production caches generated."
     else
-        # Clear caches in non-production to ensure fresh state
         php artisan config:clear 2>/dev/null || true
         php artisan route:clear 2>/dev/null || true
         php artisan view:clear 2>/dev/null || true
@@ -77,13 +62,12 @@ else
     exit 1
 fi
 
-# Set correct permissions
 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache 2>/dev/null || true
 chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache 2>/dev/null || true
 
 echo "=========================================="
 echo " Application ready - starting services"
-echo " Listening on port 80"
+echo " Listening on port ${NGINX_PORT}"
 echo "=========================================="
 
 exec "$@"
