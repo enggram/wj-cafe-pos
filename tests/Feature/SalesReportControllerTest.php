@@ -7,9 +7,15 @@ use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Table;
+use App\Models\User;
+use App\Enums\UserRole;
 use Carbon\Carbon;
 
 beforeEach(function () {
+    // Reports are admin-only — authenticate as an admin
+    $admin = User::factory()->create(['role' => UserRole::Admin]);
+    $this->actingAs($admin);
+
     $this->category = Category::create(['name' => 'Food', 'is_active' => true]);
     $this->menuItem = MenuItem::create([
         'category_id' => $this->category->id,

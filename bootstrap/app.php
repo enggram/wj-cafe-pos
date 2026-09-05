@@ -1,10 +1,11 @@
 <?php
 
+use App\Http\Middleware\EnsureUserIsAdmin;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 
-// Suppress PHP 8.5 deprecation warnings from vendor code (PDO::MYSQL_ATTR_SSL_CA)
+// Suppress PHP deprecation warnings from vendor code
 error_reporting(E_ALL & ~E_DEPRECATED);
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -16,6 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
+        ]);
+
+        $middleware->alias([
+            'admin' => EnsureUserIsAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
