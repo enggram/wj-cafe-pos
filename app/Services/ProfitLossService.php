@@ -112,10 +112,9 @@ class ProfitLossService implements ProfitLossServiceInterface
      */
     private function calculateInventoryPurchases(Carbon $start, Carbon $end): float
     {
-        return (float) PurchaseEntry::whereBetween('purchase_date', [
-            $start->toDateString(),
-            $end->toDateString(),
-        ])->sum('cost');
+        return (float) PurchaseEntry::whereDate('purchase_date', '>=', $start->toDateString())
+            ->whereDate('purchase_date', '<=', $end->toDateString())
+            ->sum('cost');
     }
 
     /**

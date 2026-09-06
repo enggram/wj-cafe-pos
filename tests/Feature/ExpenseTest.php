@@ -119,6 +119,22 @@ it('P&L breakdown sums to total expenses and net subtracts them', function () {
     expect(round($sum, 2))->toBe($report->totalExpenses);
 });
 
+// ── Period boundary (regression) ──
+it('includes expenses on the last day of the period', function () {
+    $pl = app(ProfitLossServiceInterface::class);
+    $cat = ExpenseCategory::factory()->create(['name' => 'Salary']);
+    // Sunday 2026-09-06 is the LAST day of the week starting Mon 2026-08-31
+    ExpenseEntry::factory()->create([
+        'expense_category_id' => $cat->id,
+        'amount' => 2000,
+        'expense_date' => '2026-09-06',
+    ]);
+
+    $report = $pl->weeklyReport(Carbon::parse('2026-08-31'));
+    expect($report->totalExpenses)->toBe(2000.0);
+    expect($report->expenseBreakdown)->toHaveCount(1);
+});
+
 // ── Access control ──
 it('blocks staff from expense endpoints', function () {
     $staff = User::factory()->create(['role' => UserRole::Staff]);

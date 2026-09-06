@@ -126,16 +126,16 @@ class ExpenseService implements ExpenseServiceInterface
 
     public function expenseTotalForPeriod(Carbon $start, Carbon $end): float
     {
-        return round((float) ExpenseEntry::whereBetween('expense_date', [
-            $start->toDateString(),
-            $end->toDateString(),
-        ])->sum('amount'), 2);
+        return round((float) ExpenseEntry::whereDate('expense_date', '>=', $start->toDateString())
+            ->whereDate('expense_date', '<=', $end->toDateString())
+            ->sum('amount'), 2);
     }
 
     public function expenseBreakdownForPeriod(Carbon $start, Carbon $end): array
     {
         return ExpenseEntry::with('expenseCategory')
-            ->whereBetween('expense_date', [$start->toDateString(), $end->toDateString()])
+            ->whereDate('expense_date', '>=', $start->toDateString())
+            ->whereDate('expense_date', '<=', $end->toDateString())
             ->get()
             ->groupBy(fn (ExpenseEntry $entry) => $entry->expenseCategory->name)
             ->map(fn (Collection $group, string $name) => [
