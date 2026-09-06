@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Contracts\BillingServiceInterface;
+use App\Contracts\ExpenseServiceInterface;
 use App\Contracts\InventoryServiceInterface;
 use App\Contracts\MenuServiceInterface;
 use App\Contracts\OrderServiceInterface;
@@ -34,6 +35,9 @@ class DomainServiceProvider extends ServiceProvider
 
         // Profit/Loss Reporting
         $this->app->bind(ProfitLossServiceInterface::class, \App\Services\ProfitLossService::class);
+
+        // Expense Tracking
+        $this->app->bind(ExpenseServiceInterface::class, \App\Services\ExpenseService::class);
     }
 
     /**

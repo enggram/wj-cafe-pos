@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Contracts\ExpenseServiceInterface;
 use App\Contracts\ProfitLossServiceInterface;
 use App\DTOs\ProfitLossDTO;
 use App\Enums\OrderStatus;
@@ -11,24 +12,34 @@ use Carbon\Carbon;
 
 class ProfitLossService implements ProfitLossServiceInterface
 {
+    public function __construct(
+        private readonly ExpenseServiceInterface $expenseService,
+    ) {}
+
     public function weeklyReport(Carbon $startDate): ProfitLossDTO
     {
         // Adjust to Monday of the given week
         $monday = $startDate->copy()->startOfWeek(Carbon::MONDAY);
         $sunday = $monday->copy()->endOfWeek(Carbon::SUNDAY);
 
-        $revenue = $this->calculateRevenue($monday, $sunday);
-        $spending = $this->calculateSpending($monday, $sunday);
-        $net = round($revenue - $spending, 2);
+        $revenue            = round($this->calculateRevenue($monday, $sunday), 2);
+        $inventoryPurchases = round($this->calculateInventoryPurchases($monday, $sunday), 2);
+        $totalExpenses      = $this->expenseService->expenseTotalForPeriod($monday, $sunday);
+        $expenseBreakdown   = $this->expenseService->expenseBreakdownForPeriod($monday, $sunday);
+        $spending           = round($inventoryPurchases + $totalExpenses, 2);
+        $net                = round($revenue - $spending, 2);
 
         $periodLabel = 'Weekly: ' . $monday->format('M d') . ' - ' . $sunday->format('M d, Y');
 
         return new ProfitLossDTO(
-            totalEarnings: round($revenue, 2),
-            totalSpending: round($spending, 2),
+            totalEarnings: $revenue,
+            totalSpending: $spending,
             netAmount: $net,
             status: $this->determineStatus($net),
             periodLabel: $periodLabel,
+            inventoryPurchases: $inventoryPurchases,
+            totalExpenses: $totalExpenses,
+            expenseBreakdown: $expenseBreakdown,
         );
     }
 
@@ -37,18 +48,24 @@ class ProfitLossService implements ProfitLossServiceInterface
         $startOfMonth = Carbon::create($year, $month, 1)->startOfDay();
         $endOfMonth = $startOfMonth->copy()->endOfMonth();
 
-        $revenue = $this->calculateRevenue($startOfMonth, $endOfMonth);
-        $spending = $this->calculateSpending($startOfMonth, $endOfMonth);
-        $net = round($revenue - $spending, 2);
+        $revenue            = round($this->calculateRevenue($startOfMonth, $endOfMonth), 2);
+        $inventoryPurchases = round($this->calculateInventoryPurchases($startOfMonth, $endOfMonth), 2);
+        $totalExpenses      = $this->expenseService->expenseTotalForPeriod($startOfMonth, $endOfMonth);
+        $expenseBreakdown   = $this->expenseService->expenseBreakdownForPeriod($startOfMonth, $endOfMonth);
+        $spending           = round($inventoryPurchases + $totalExpenses, 2);
+        $net                = round($revenue - $spending, 2);
 
         $periodLabel = 'Monthly: ' . $startOfMonth->format('F Y');
 
         return new ProfitLossDTO(
-            totalEarnings: round($revenue, 2),
-            totalSpending: round($spending, 2),
+            totalEarnings: $revenue,
+            totalSpending: $spending,
             netAmount: $net,
             status: $this->determineStatus($net),
             periodLabel: $periodLabel,
+            inventoryPurchases: $inventoryPurchases,
+            totalExpenses: $totalExpenses,
+            expenseBreakdown: $expenseBreakdown,
         );
     }
 
@@ -57,18 +74,24 @@ class ProfitLossService implements ProfitLossServiceInterface
         $startOfYear = Carbon::create($year, 1, 1)->startOfDay();
         $endOfYear = Carbon::create($year, 12, 31)->endOfDay();
 
-        $revenue = $this->calculateRevenue($startOfYear, $endOfYear);
-        $spending = $this->calculateSpending($startOfYear, $endOfYear);
-        $net = round($revenue - $spending, 2);
+        $revenue            = round($this->calculateRevenue($startOfYear, $endOfYear), 2);
+        $inventoryPurchases = round($this->calculateInventoryPurchases($startOfYear, $endOfYear), 2);
+        $totalExpenses      = $this->expenseService->expenseTotalForPeriod($startOfYear, $endOfYear);
+        $expenseBreakdown   = $this->expenseService->expenseBreakdownForPeriod($startOfYear, $endOfYear);
+        $spending           = round($inventoryPurchases + $totalExpenses, 2);
+        $net                = round($revenue - $spending, 2);
 
         $periodLabel = 'Yearly: ' . $year;
 
         return new ProfitLossDTO(
-            totalEarnings: round($revenue, 2),
-            totalSpending: round($spending, 2),
+            totalEarnings: $revenue,
+            totalSpending: $spending,
             netAmount: $net,
             status: $this->determineStatus($net),
             periodLabel: $periodLabel,
+            inventoryPurchases: $inventoryPurchases,
+            totalExpenses: $totalExpenses,
+            expenseBreakdown: $expenseBreakdown,
         );
     }
 
@@ -85,9 +108,9 @@ class ProfitLossService implements ProfitLossServiceInterface
     }
 
     /**
-     * Calculate spending as sum of purchase_entries.cost within the period.
+     * Calculate inventory purchases as sum of purchase_entries.cost within the period.
      */
-    private function calculateSpending(Carbon $start, Carbon $end): float
+    private function calculateInventoryPurchases(Carbon $start, Carbon $end): float
     {
         return (float) PurchaseEntry::whereBetween('purchase_date', [
             $start->toDateString(),

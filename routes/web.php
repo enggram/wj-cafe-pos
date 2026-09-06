@@ -4,6 +4,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ExpenseCategoryController;
+use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\OrderController;
@@ -67,6 +69,18 @@ Route::middleware('auth')->group(function () {
         Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
         Route::get('/inventory/daily', [InventoryController::class, 'dailyView'])->name('inventory.daily');
         Route::get('/inventory/monthly', [InventoryController::class, 'monthlyView'])->name('inventory.monthly');
+
+        // Expense Categories
+        Route::post('/expense-categories', [ExpenseCategoryController::class, 'store'])->name('expense-categories.store');
+        Route::put('/expense-categories/{expenseCategory}', [ExpenseCategoryController::class, 'update'])->name('expense-categories.update');
+        Route::patch('/expense-categories/{expenseCategory}/deactivate', [ExpenseCategoryController::class, 'deactivate'])->name('expense-categories.deactivate');
+        Route::patch('/expense-categories/{expenseCategory}/activate', [ExpenseCategoryController::class, 'activate'])->name('expense-categories.activate');
+
+        // Expenses
+        Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
+        Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.store');
+        Route::get('/expenses/daily', [ExpenseController::class, 'dailyView'])->name('expenses.daily');
+        Route::get('/expenses/monthly', [ExpenseController::class, 'monthlyView'])->name('expenses.monthly');
 
         // User management
         Route::get('/users', [UserController::class, 'index'])->name('users.index');

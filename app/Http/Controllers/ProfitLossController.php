@@ -33,16 +33,21 @@ class ProfitLossController extends Controller
 
         return Inertia::render('Reports/ProfitLoss', [
             'report' => [
-                'totalEarnings' => $report->totalEarnings,
-                'totalSpending' => $report->totalSpending,
-                'netAmount'     => $report->netAmount,
-                'status'        => $report->status,
-                'periodLabel'   => $report->periodLabel,
+                'totalEarnings'      => $report->totalEarnings,
+                'totalSpending'      => $report->totalSpending,
+                'inventoryPurchases' => $report->inventoryPurchases,
+                'totalExpenses'      => $report->totalExpenses,
+                'expenseBreakdown'   => $report->expenseBreakdown,
+                'netAmount'          => $report->netAmount,
+                'status'             => $report->status,
+                'periodLabel'        => $report->periodLabel,
             ],
             'formatted' => [
-                'earnings' => $this->money($report->totalEarnings),
-                'spending' => $this->money($report->totalSpending),
-                'net'      => $this->money($report->netAmount),
+                'earnings'  => $this->money($report->totalEarnings),
+                'inventory' => $this->money($report->inventoryPurchases),
+                'expenses'  => $this->money($report->totalExpenses),
+                'spending'  => $this->money($report->totalSpending),
+                'net'       => $this->money($report->netAmount),
             ],
             'filters' => [
                 'period'     => $period,

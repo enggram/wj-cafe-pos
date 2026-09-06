@@ -104,6 +104,7 @@ const allLinks = [
   { href: '/menu',                label: 'Menu',      adminOnly: true },
   { href: '/orders/tables',       label: 'Orders',    adminOnly: false },
   { href: '/inventory',           label: 'Inventory', adminOnly: true },
+  { href: '/expenses',            label: 'Expenses',  adminOnly: true },
   { href: '/reports/sales',       label: 'Sales',     adminOnly: true },
   { href: '/reports/profit-loss', label: 'P&L',       adminOnly: true },
   { href: '/users',               label: 'Users',     adminOnly: true },

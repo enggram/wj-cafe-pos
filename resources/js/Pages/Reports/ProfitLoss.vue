@@ -11,6 +11,9 @@ const props = defineProps({
             netAmount: 0,
             status: 'break-even',
             periodLabel: '',
+            inventoryPurchases: 0,
+            totalExpenses: 0,
+            expenseBreakdown: [],
         }),
     },
     formatted: {
@@ -19,6 +22,8 @@ const props = defineProps({
             earnings: '₹0.00',
             spending: '₹0.00',
             net: '₹0.00',
+            inventory: '₹0.00',
+            expenses: '₹0.00',
         }),
     },
     filters: {
@@ -101,6 +106,14 @@ function changePeriod(period) {
     selectedPeriod.value = period;
     applyFilters();
 }
+
+// --- Currency helper for breakdown rows ---
+function money(value) {
+    return '₹' + Number(value ?? 0).toFixed(2);
+}
+
+// --- Expense breakdown ---
+const expenseBreakdown = computed(() => props.report.expenseBreakdown ?? []);
 
 // --- Status indicator config ---
 const statusConfig = computed(() => {
@@ -250,20 +263,12 @@ const statusConfig = computed(() => {
         </p>
 
         <!-- Summary Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             <!-- Total Earnings -->
             <div class="card">
                 <p class="text-sm font-medium text-brand-gray-mid mb-1">Total Earnings</p>
                 <p class="text-2xl font-bold text-white" aria-label="Total earnings">
                     {{ formatted.earnings }}
-                </p>
-            </div>
-
-            <!-- Total Spending -->
-            <div class="card">
-                <p class="text-sm font-medium text-brand-gray-mid mb-1">Total Spending</p>
-                <p class="text-2xl font-bold text-white" aria-label="Total spending">
-                    {{ formatted.spending }}
                 </p>
             </div>
 
@@ -275,6 +280,59 @@ const statusConfig = computed(() => {
                 </p>
             </div>
         </div>
+
+        <!-- Cost Breakdown -->
+        <section class="card mb-6" aria-labelledby="cost-breakdown-heading">
+            <h2 id="cost-breakdown-heading" class="text-xl font-semibold text-white mb-4">Cost Breakdown</h2>
+
+            <div class="space-y-3">
+                <!-- Inventory Purchases -->
+                <div class="flex items-center justify-between border-b border-brand-black-lighter pb-3">
+                    <span class="text-brand-gray-light">Inventory Purchases</span>
+                    <span class="text-white font-medium" aria-label="Inventory purchases">{{ formatted.inventory }}</span>
+                </div>
+
+                <!-- Expenses -->
+                <div class="border-b border-brand-black-lighter pb-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-brand-gray-light">Expenses</span>
+                        <span class="text-white font-medium" aria-label="Total expenses">{{ formatted.expenses }}</span>
+                    </div>
+
+                    <!-- Per-category expense breakdown -->
+                    <div class="mt-3 pl-4 border-l-2 border-brand-black-lighter">
+                        <p class="text-xs text-brand-gray-mid uppercase tracking-wide mb-2">By Category</p>
+                        <div v-if="expenseBreakdown.length === 0">
+                            <p class="text-sm text-brand-gray-mid italic">No expenses recorded for this period.</p>
+                        </div>
+                        <table v-else class="w-full text-sm" aria-label="Expense breakdown by category">
+                            <thead>
+                                <tr class="border-b border-brand-black-lighter/50">
+                                    <th class="text-left text-brand-gray-mid py-2 pr-4 font-medium">Category</th>
+                                    <th class="text-right text-brand-gray-mid py-2 pl-4 font-medium">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="(row, index) in expenseBreakdown"
+                                    :key="index"
+                                    class="border-b border-brand-black-lighter/30 last:border-0"
+                                >
+                                    <td class="py-2 pr-4 text-white">{{ row.category_name }}</td>
+                                    <td class="py-2 pl-4 text-right text-brand-gray-light">{{ money(row.total) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Total Spending -->
+                <div class="flex items-center justify-between pt-1">
+                    <span class="text-white font-semibold">Total Spending</span>
+                    <span class="text-brand-red-accent font-bold text-base" aria-label="Total spending">{{ formatted.spending }}</span>
+                </div>
+            </div>
+        </section>
 
         <!-- Status Indicator -->
         <div

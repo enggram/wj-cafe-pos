@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Enums\UserRole;
 use App\Models\Category;
+use App\Models\ExpenseCategory;
 use App\Models\Table;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -36,6 +37,11 @@ class InitialDataSeeder extends Seeder
         // Default categories
         foreach (['Tea', 'Coffee', 'Juices', 'Food'] as $name) {
             Category::firstOrCreate(['name' => $name], ['is_active' => true]);
+        }
+
+        // Default expense categories
+        foreach (['Salary', 'Rent', 'Electricity', 'Gas', 'Maintenance', 'Miscellaneous'] as $name) {
+            ExpenseCategory::firstOrCreate(['name' => $name], ['is_active' => true]);
         }
 
         // Default tables
