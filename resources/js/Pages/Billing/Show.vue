@@ -57,7 +57,13 @@
                             :key="item.id"
                             class="border-b border-brand-black-lighter/50 last:border-0"
                         >
-                            <td class="py-2 pr-4 text-white">{{ item.menu_item?.name ?? `Item #${item.id}` }}</td>
+                            <td class="py-2 pr-4 text-white">
+                                {{ item.menu_item?.name ?? `Item #${item.id}` }}
+                                <span v-if="item.is_parcel" class="ml-2 text-xs px-1.5 py-0.5 rounded bg-brand-red/20 text-brand-red-accent">Parcel</span>
+                                <span v-if="item.is_parcel && Number(item.parcel_line_total) > 0" class="block text-xs text-brand-gray-mid">
+                                    + Parcel charge ₹{{ fmt(item.parcel_line_total) }}
+                                </span>
+                            </td>
                             <td class="py-2 px-2 text-center text-brand-gray-light">{{ item.quantity }}</td>
                             <td class="py-2 px-2 text-right text-brand-gray-light">₹{{ fmt(item.unit_price) }}</td>
                             <td class="py-2 pl-2 text-right text-white font-medium">
@@ -68,12 +74,22 @@
                 </table>
             </div>
 
-            <!-- Grand total -->
-            <div class="mt-4 pt-4 border-t-2 border-brand-red flex items-center justify-between">
-                <span class="text-lg font-bold text-white">Grand Total</span>
-                <span class="text-2xl sm:text-3xl font-bold text-brand-red">
-                    ₹{{ fmt(bill.grand_total) }}
-                </span>
+            <!-- Totals -->
+            <div class="mt-4 space-y-1">
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-brand-gray-mid">Items Subtotal</span>
+                    <span class="text-brand-gray-light">₹{{ fmt(bill.items_subtotal) }}</span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-brand-gray-mid">Parcel Charges</span>
+                    <span class="text-brand-gray-light">₹{{ fmt(bill.parcel_charges_total) }}</span>
+                </div>
+                <div class="mt-2 pt-4 border-t-2 border-brand-red flex items-center justify-between">
+                    <span class="text-lg font-bold text-white">Grand Total</span>
+                    <span class="text-2xl sm:text-3xl font-bold text-brand-red">
+                        ₹{{ fmt(bill.grand_total) }}
+                    </span>
+                </div>
             </div>
 
             <!-- PAID stamp -->

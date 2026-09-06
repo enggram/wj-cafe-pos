@@ -81,17 +81,22 @@ class BillingController extends Controller
     private function formatBill($bill): array
     {
         return [
-            'id'          => $bill->id,
-            'grand_total' => $bill->grand_total,
-            'status'      => $bill->status instanceof \BackedEnum ? $bill->status->value : $bill->status,
-            'billed_at'   => $bill->billed_at->toIso8601String(),
-            'order'       => [
+            'id'                   => $bill->id,
+            'items_subtotal'       => $bill->items_subtotal,
+            'parcel_charges_total' => $bill->parcel_charges_total,
+            'grand_total'          => $bill->grand_total,
+            'status'               => $bill->status instanceof \BackedEnum ? $bill->status->value : $bill->status,
+            'billed_at'            => $bill->billed_at->toIso8601String(),
+            'order'                => [
                 'id'          => $bill->order->id,
                 'order_items' => $bill->order->orderItems->map(fn ($item) => [
-                    'id'         => $item->id,
-                    'quantity'   => $item->quantity,
-                    'unit_price' => $item->unit_price,
-                    'menu_item'  => ['name' => $item->menuItem?->name ?? 'Unknown'],
+                    'id'                => $item->id,
+                    'quantity'          => $item->quantity,
+                    'unit_price'        => $item->unit_price,
+                    'is_parcel'         => (bool) $item->is_parcel,
+                    'parcel_rate'       => $item->parcel_rate,
+                    'parcel_line_total' => $item->is_parcel ? round((float) $item->parcel_rate * $item->quantity, 2) : 0.0,
+                    'menu_item'         => ['name' => $item->menuItem?->name ?? 'Unknown'],
                 ])->values()->toArray(),
             ],
         ];

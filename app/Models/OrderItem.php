@@ -16,6 +16,8 @@ class OrderItem extends Model
         'sub_variety_id',
         'quantity',
         'unit_price',
+        'is_parcel',
+        'parcel_rate',
     ];
 
     protected function casts(): array
@@ -23,6 +25,8 @@ class OrderItem extends Model
         return [
             'quantity' => 'integer',
             'unit_price' => 'decimal:2',
+            'is_parcel' => 'boolean',
+            'parcel_rate' => 'decimal:2',
         ];
     }
 

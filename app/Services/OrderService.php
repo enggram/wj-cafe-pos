@@ -22,7 +22,7 @@ class OrderService implements OrderServiceInterface
      * Create a new order for a table with initial items.
      *
      * @param int $tableId
-     * @param array $items Array of ['menu_item_id' => int, 'quantity' => int, 'sub_variety_id' => int|null]
+     * @param array $items Array of ['menu_item_id' => int, 'quantity' => int, 'sub_variety_id' => int|null, 'is_parcel' => bool (optional, default false)]
      * @return Order
      *
      * @throws NotFoundHttpException If table does not exist
@@ -69,7 +69,7 @@ class OrderService implements OrderServiceInterface
      * Add items to an existing active order.
      *
      * @param int $orderId
-     * @param array $items Array of ['menu_item_id' => int, 'quantity' => int, 'sub_variety_id' => int|null]
+     * @param array $items Array of ['menu_item_id' => int, 'quantity' => int, 'sub_variety_id' => int|null, 'is_parcel' => bool (optional, default false)]
      * @return Order
      *
      * @throws NotFoundHttpException If order does not exist
@@ -96,11 +96,14 @@ class OrderService implements OrderServiceInterface
             $menuItemId = $item['menu_item_id'];
             $subVarietyId = $item['sub_variety_id'] ?? null;
             $quantity = $item['quantity'];
+            $isParcel = (bool) ($item['is_parcel'] ?? false);
 
-            // Check if same menu_item_id + sub_variety_id combo exists
+            // Check if same menu_item_id + sub_variety_id + is_parcel combo exists.
+            // Parcel and dine-in lines of the same item stay separate.
             $existingItem = $order->orderItems()
                 ->where('menu_item_id', $menuItemId)
                 ->where('sub_variety_id', $subVarietyId)
+                ->where('is_parcel', $isParcel)
                 ->first();
 
             if ($existingItem) {
@@ -115,6 +118,8 @@ class OrderService implements OrderServiceInterface
                     'sub_variety_id' => $subVarietyId,
                     'quantity' => $quantity,
                     'unit_price' => $unitPrice,
+                    'is_parcel' => $isParcel,
+                    'parcel_rate' => $this->resolveParcelRate($menuItemId),
                 ]);
             }
         }
@@ -203,7 +208,7 @@ class OrderService implements OrderServiceInterface
      * Attach items to an order, snapshotting the current price.
      *
      * @param Order $order
-     * @param array $items
+     * @param array $items Array of ['menu_item_id' => int, 'quantity' => int, 'sub_variety_id' => int|null, 'is_parcel' => bool (optional, default false)]
      */
     private function attachItems(Order $order, array $items): void
     {
@@ -211,6 +216,7 @@ class OrderService implements OrderServiceInterface
             $menuItemId = $item['menu_item_id'];
             $subVarietyId = $item['sub_variety_id'] ?? null;
             $quantity = $item['quantity'];
+            $isParcel = (bool) ($item['is_parcel'] ?? false);
 
             $unitPrice = $this->resolveUnitPrice($menuItemId, $subVarietyId);
 
@@ -219,6 +225,8 @@ class OrderService implements OrderServiceInterface
                 'sub_variety_id' => $subVarietyId,
                 'quantity' => $quantity,
                 'unit_price' => $unitPrice,
+                'is_parcel' => $isParcel,
+                'parcel_rate' => $this->resolveParcelRate($menuItemId),
             ]);
         }
     }
@@ -241,5 +249,14 @@ class OrderService implements OrderServiceInterface
         }
 
         return number_format($price, 2, '.', '');
+    }
+
+    /**
+     * Resolve the current parcel rate for a menu item (snapshotted onto the order item).
+     */
+    private function resolveParcelRate(int $menuItemId): string
+    {
+        $menuItem = MenuItem::findOrFail($menuItemId);
+        return number_format((float) $menuItem->parcel_rate, 2, '.', '');
     }
 }

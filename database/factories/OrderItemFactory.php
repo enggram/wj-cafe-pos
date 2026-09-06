@@ -22,6 +22,16 @@ class OrderItemFactory extends Factory
             'sub_variety_id' => null,
             'quantity' => fake()->numberBetween(1, 10),
             'unit_price' => fake()->randomFloat(2, 0.01, 999.99),
+            'is_parcel' => false,
+            'parcel_rate' => 0.00,
         ];
+    }
+
+    public function parcel(float $rate): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_parcel' => true,
+            'parcel_rate' => $rate,
+        ]);
     }
 }

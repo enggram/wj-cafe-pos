@@ -17,10 +17,15 @@ class BillFactory extends Factory
 
     public function definition(): array
     {
+        $subtotal = fake()->randomFloat(2, 1, 9999.99);
+        $parcel = fake()->randomFloat(2, 0, 500);
+
         return [
             'order_id' => Order::factory()->billed(),
             'table_id' => Table::factory(),
-            'grand_total' => fake()->randomFloat(2, 1, 9999.99),
+            'items_subtotal' => $subtotal,
+            'parcel_charges_total' => $parcel,
+            'grand_total' => round($subtotal + $parcel, 2),
             'status' => BillStatus::Unpaid,
             'billed_at' => now(),
         ];

@@ -20,6 +20,7 @@ class MenuService implements MenuServiceInterface
         return MenuItem::create([
             'name' => $data['name'],
             'price' => $data['price'],
+            'parcel_rate' => $data['parcel_rate'],
             'category_id' => $data['category_id'],
             'is_active' => true,
         ]);
@@ -36,6 +37,7 @@ class MenuService implements MenuServiceInterface
         $menuItem->update([
             'name' => $data['name'],
             'price' => $data['price'],
+            'parcel_rate' => $data['parcel_rate'],
             'category_id' => $data['category_id'],
         ]);
 
@@ -129,6 +131,17 @@ class MenuService implements MenuServiceInterface
             $errors['category_id'] = ['The category field is required.'];
         } elseif (!Category::where('id', $data['category_id'])->exists()) {
             $errors['category_id'] = ['The selected category does not exist.'];
+        }
+
+        // Validate optional parcel_rate (default 0.00 when omitted/empty)
+        if (array_key_exists('parcel_rate', $data) && $data['parcel_rate'] !== null && $data['parcel_rate'] !== '') {
+            if (!is_numeric($data['parcel_rate'])) {
+                $errors['parcel_rate'] = ['The parcel rate must be a numeric value.'];
+            } elseif ((float) $data['parcel_rate'] < 0.00 || (float) $data['parcel_rate'] > 9999.99) {
+                $errors['parcel_rate'] = ['The parcel rate must be between 0.00 and 9999.99.'];
+            }
+        } else {
+            $data['parcel_rate'] = 0.00;
         }
 
         if (!empty($errors)) {

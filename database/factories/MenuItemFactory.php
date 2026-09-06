@@ -19,6 +19,7 @@ class MenuItemFactory extends Factory
             'category_id' => Category::factory(),
             'name' => fake()->unique()->words(2, true),
             'price' => fake()->randomFloat(2, 0.01, 99999.99),
+            'parcel_rate' => fake()->randomFloat(2, 0, 9999.99),
             'is_active' => true,
         ];
     }
@@ -27,6 +28,20 @@ class MenuItemFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'is_active' => false,
+        ]);
+    }
+
+    public function parcelRate(float $r): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'parcel_rate' => $r,
+        ]);
+    }
+
+    public function withoutParcelRate(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'parcel_rate' => 0.00,
         ]);
     }
 }

@@ -49,13 +49,14 @@ function activateCategory(cat) {
 // ── Menu item management ───────────────────────────────────────
 const editingItem = ref(null);
 
-const form = useForm({ name: '', price: '', category_id: '' });
+const form = useForm({ name: '', price: '', category_id: '', parcel_rate: 0 });
 
 function startEdit(item) {
     editingItem.value = item;
     form.name        = item.name;
     form.price       = item.price;
     form.category_id = item.category_id;
+    form.parcel_rate = item.parcel_rate ?? 0;
 }
 
 function cancelEdit() {
@@ -224,6 +225,20 @@ function submitSubVariety(itemId) {
                 </div>
 
                 <div>
+                    <label for="item-parcel-rate" class="block text-sm font-medium text-brand-gray-light mb-1">Parcel Rate (₹)</label>
+                    <input
+                        id="item-parcel-rate"
+                        v-model="form.parcel_rate"
+                        type="number" step="0.01" min="0" max="9999.99"
+                        :class="form.errors.parcel_rate ? 'input-field-error' : 'input-field'"
+                        class="w-full"
+                        placeholder="0.00"
+                    />
+                    <p class="mt-1 text-xs text-brand-gray-mid">Extra charge per unit when taken as parcel (0 = no charge)</p>
+                    <p v-if="form.errors.parcel_rate" class="mt-1 text-sm text-brand-red-light" role="alert">{{ form.errors.parcel_rate }}</p>
+                </div>
+
+                <div>
                     <label for="item-category" class="block text-sm font-medium text-brand-gray-light mb-1">Category</label>
                     <select
                         id="item-category"
@@ -270,7 +285,10 @@ function submitSubVariety(itemId) {
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div class="flex-1">
                                 <h4 class="text-white font-medium">{{ item.name }}</h4>
-                                <p class="text-brand-gray-light text-sm">₹{{ Number(item.price).toFixed(2) }}</p>
+                                <p class="text-brand-gray-light text-sm">
+                                    ₹{{ Number(item.price).toFixed(2) }}
+                                    <span v-if="Number(item.parcel_rate) > 0" class="text-xs text-brand-red-accent">· Parcel ₹{{ Number(item.parcel_rate).toFixed(2) }}</span>
+                                </p>
                             </div>
                             <div class="flex flex-wrap gap-2">
                                 <button type="button" class="btn-secondary text-sm" @click="startEdit(item)">Edit</button>

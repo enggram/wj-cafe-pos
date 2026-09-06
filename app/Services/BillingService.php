@@ -41,16 +41,23 @@ class BillingService implements BillingServiceInterface
             return $order->bill;
         }
 
-        // Calculate grand total: sum of (unit_price × quantity), rounded to 2 decimal places
-        $grandTotal = $order->orderItems->sum(function ($item) {
-            return round((float) $item->unit_price * $item->quantity, 2);
-        });
-        $grandTotal = round($grandTotal, 2);
+        // Calculate the three bill totals, each rounded to 2 decimal places.
+        $itemsSubtotal = round($order->orderItems->sum(
+            fn ($item) => (float) $item->unit_price * $item->quantity
+        ), 2);
+
+        $parcelChargesTotal = round($order->orderItems->sum(
+            fn ($item) => $item->is_parcel ? (float) $item->parcel_rate * $item->quantity : 0.0
+        ), 2);
+
+        $grandTotal = round($itemsSubtotal + $parcelChargesTotal, 2);
 
         // Create the bill
         $bill = Bill::create([
             'order_id' => $order->id,
             'table_id' => $tableId,
+            'items_subtotal' => $itemsSubtotal,
+            'parcel_charges_total' => $parcelChargesTotal,
             'grand_total' => $grandTotal,
             'status' => BillStatus::Unpaid,
             'billed_at' => now(),

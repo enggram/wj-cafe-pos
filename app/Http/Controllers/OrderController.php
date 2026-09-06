@@ -54,6 +54,7 @@ class OrderController extends Controller
             'items.*.menu_item_id'   => 'required|integer|exists:menu_items,id',
             'items.*.quantity'       => 'required|integer|min:1|max:99',
             'items.*.sub_variety_id' => 'nullable|integer|exists:sub_varieties,id',
+            'items.*.is_parcel'      => 'nullable|boolean',
         ]);
 
         $this->orderService->createOrder($validated['table_id'], $validated['items']);
@@ -70,6 +71,7 @@ class OrderController extends Controller
             'items.*.menu_item_id'   => 'required|integer|exists:menu_items,id',
             'items.*.quantity'       => 'required|integer|min:1|max:99',
             'items.*.sub_variety_id' => 'nullable|integer|exists:sub_varieties,id',
+            'items.*.is_parcel'      => 'nullable|boolean',
         ]);
 
         try {

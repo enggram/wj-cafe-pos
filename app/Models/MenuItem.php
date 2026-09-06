@@ -15,6 +15,7 @@ class MenuItem extends Model
         'category_id',
         'name',
         'price',
+        'parcel_rate',
         'is_active',
     ];
 
@@ -22,6 +23,7 @@ class MenuItem extends Model
     {
         return [
             'price' => 'decimal:2',
+            'parcel_rate' => 'decimal:2',
             'is_active' => 'boolean',
         ];
     }

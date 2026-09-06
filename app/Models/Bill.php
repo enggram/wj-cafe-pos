@@ -15,6 +15,8 @@ class Bill extends Model
         'order_id',
         'table_id',
         'grand_total',
+        'items_subtotal',
+        'parcel_charges_total',
         'status',
         'billed_at',
     ];
@@ -23,6 +25,8 @@ class Bill extends Model
     {
         return [
             'grand_total' => 'decimal:2',
+            'items_subtotal' => 'decimal:2',
+            'parcel_charges_total' => 'decimal:2',
             'status' => BillStatus::class,
             'billed_at' => 'datetime',
         ];

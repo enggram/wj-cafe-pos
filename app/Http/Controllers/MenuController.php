@@ -37,6 +37,7 @@ class MenuController extends Controller
             'name' => 'required|string|max:100',
             'price' => 'required|numeric|min:0.01|max:99999.99',
             'category_id' => 'required|integer|exists:categories,id',
+            'parcel_rate' => 'nullable|numeric|min:0|max:9999.99',
         ]);
 
         $this->menuService->createItem($validated);
@@ -53,6 +54,7 @@ class MenuController extends Controller
             'name' => 'required|string|max:100',
             'price' => 'required|numeric|min:0.01|max:99999.99',
             'category_id' => 'required|integer|exists:categories,id',
+            'parcel_rate' => 'nullable|numeric|min:0|max:9999.99',
         ]);
 
         $this->menuService->updateItem($id, $validated);
