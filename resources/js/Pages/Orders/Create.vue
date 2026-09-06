@@ -84,8 +84,13 @@
                 <p class="text-brand-gray-mid">No menu items available. Add items in Menu Management first.</p>
             </div>
 
-            <div class="space-y-2">
-                <div v-for="item in menuItems" :key="item.id"
+            <!-- Grouped by category -->
+            <div v-for="group in groupedMenuItems" :key="group.category" class="mb-6">
+                <h3 class="text-base font-semibold text-brand-red-accent mb-2 border-b border-brand-black-lighter pb-1 sticky top-0 bg-brand-black z-10">
+                    {{ group.category }}
+                </h3>
+                <div class="space-y-2">
+                <div v-for="item in group.items" :key="item.id"
                      class="card !p-3 sm:!p-4">
                     <!-- Dine-in row -->
                     <div class="flex items-center justify-between gap-3">
@@ -93,7 +98,6 @@
                             <p class="text-white font-medium truncate">{{ item.name }}</p>
                             <p class="text-brand-gray-mid text-sm">
                                 <span class="text-brand-red-accent">₹{{ Number(item.price).toFixed(2) }}</span>
-                                <span v-if="item.category" class="ml-2">· {{ item.category.name }}</span>
                                 <span v-if="Number(item.parcel_rate) > 0" class="ml-2 text-brand-gray-mid">· Parcel ₹{{ Number(item.parcel_rate).toFixed(2) }}/unit</span>
                             </p>
                         </div>
@@ -141,6 +145,7 @@
                         </div>
                     </div>
                 </div>
+                </div>
             </div>
         </section>
 
@@ -169,6 +174,18 @@ const props = defineProps({
     table:         { type: Object, required: true },
     menuItems:     { type: Array,  required: true },
     existingOrder: { type: Object, default: null },
+});
+
+// ── Group menu items by category (preserves order, falls back to "Other") ──
+const groupedMenuItems = computed(() => {
+    const groups = {};
+    const order = [];
+    for (const item of props.menuItems) {
+        const cat = item.category?.name || 'Other';
+        if (!groups[cat]) { groups[cat] = []; order.push(cat); }
+        groups[cat].push(item);
+    }
+    return order.map(cat => ({ category: cat, items: groups[cat] }));
 });
 
 // ── Inline notification ──────────────────────────────────────
