@@ -84,67 +84,84 @@
                 <p class="text-brand-gray-mid">No menu items available. Add items in Menu Management first.</p>
             </div>
 
-            <!-- Grouped by category -->
-            <div v-for="group in groupedMenuItems" :key="group.category" class="mb-6">
-                <h3 class="text-base font-semibold text-brand-red-accent mb-2 border-b border-brand-black-lighter pb-1 sticky top-0 bg-brand-black z-10">
-                    {{ group.category }}
-                </h3>
-                <div class="space-y-2">
-                <div v-for="item in group.items" :key="item.id"
-                     class="card !p-3 sm:!p-4">
-                    <!-- Dine-in row -->
-                    <div class="flex items-center justify-between gap-3">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-white font-medium truncate">{{ item.name }}</p>
-                            <p class="text-brand-gray-mid text-sm">
-                                <span class="text-brand-red-accent">₹{{ Number(item.price).toFixed(2) }}</span>
-                                <span v-if="Number(item.parcel_rate) > 0" class="ml-2 text-brand-gray-mid">· Parcel ₹{{ Number(item.parcel_rate).toFixed(2) }}/unit</span>
-                            </p>
+            <!-- Category accordion: grid of tiles, click to expand items -->
+            <div class="space-y-3">
+                <div v-for="group in groupedMenuItems" :key="group.category">
+                    <!-- Category tile -->
+                    <button type="button"
+                        class="w-full card !p-4 flex items-center justify-between gap-3 text-left transition-colors"
+                        :class="expandedCategory === group.category ? 'border-brand-red' : ''"
+                        @click="toggleCategory(group.category)">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <span class="text-white font-semibold truncate">{{ group.category }}</span>
+                            <span class="text-brand-gray-mid text-xs shrink-0">{{ group.items.length }} item{{ group.items.length !== 1 ? 's' : '' }}</span>
+                            <span v-if="categorySelectedCount(group) > 0"
+                                class="shrink-0 bg-brand-red text-white text-xs font-bold rounded-full px-2 py-0.5">
+                                {{ categorySelectedCount(group) }}
+                            </span>
                         </div>
-                        <div class="flex items-center gap-1 sm:gap-2 shrink-0">
-                            <button type="button"
-                                class="btn-secondary !px-0 flex items-center justify-center w-[44px] h-[44px] text-lg font-bold"
-                                :disabled="getQuantity(item.id, false) <= 0"
-                                @click="decrementQuantity(item.id, false)">−</button>
-                            <span class="w-8 text-center text-white font-semibold tabular-nums">{{ getQuantity(item.id, false) }}</span>
-                            <button type="button"
-                                class="btn-primary !px-0 flex items-center justify-center w-[44px] h-[44px] text-lg font-bold"
-                                :disabled="getQuantity(item.id, false) >= 99"
-                                @click="incrementQuantity(item.id, false)">+</button>
-                        </div>
-                    </div>
+                        <span class="text-brand-red-accent text-lg shrink-0 transition-transform"
+                              :class="expandedCategory === group.category ? 'rotate-180' : ''">▾</span>
+                    </button>
 
-                    <!-- Parcel toggle (only when item has a parcel rate) -->
-                    <div v-if="Number(item.parcel_rate) > 0" class="mt-2 pt-2 border-t border-brand-black-lighter">
-                        <button type="button"
-                            class="btn-secondary text-xs px-3 py-1 min-h-[32px]"
-                            :class="parcelExpanded[item.id] ? 'text-brand-red-accent border-brand-red' : ''"
-                            @click="toggleParcel(item.id)">
-                            {{ parcelExpanded[item.id] ? '✕ Hide Parcel' : '+ Parcel' }}
-                        </button>
-
-                        <!-- Parcel sub-row -->
-                        <div v-if="parcelExpanded[item.id]" class="mt-2 flex items-center justify-between gap-3 pl-2">
+                    <!-- Expanded items -->
+                    <div v-if="expandedCategory === group.category" class="space-y-2 mt-2 pl-1">
+                    <div v-for="item in group.items" :key="item.id"
+                         class="card !p-3 sm:!p-4">
+                        <!-- Dine-in row -->
+                        <div class="flex items-center justify-between gap-3">
                             <div class="flex-1 min-w-0">
-                                <p class="text-brand-gray-light text-sm font-medium">Parcel</p>
-                                <p class="text-brand-gray-mid text-xs">
-                                    ₹{{ (Number(item.parcel_rate) * getQuantity(item.id, true)).toFixed(2) }} parcel
+                                <p class="text-white font-medium truncate">{{ item.name }}</p>
+                                <p class="text-brand-gray-mid text-sm">
+                                    <span class="text-brand-red-accent">₹{{ Number(item.price).toFixed(2) }}</span>
+                                    <span v-if="Number(item.parcel_rate) > 0" class="ml-2 text-brand-gray-mid">· Parcel ₹{{ Number(item.parcel_rate).toFixed(2) }}/unit</span>
                                 </p>
                             </div>
                             <div class="flex items-center gap-1 sm:gap-2 shrink-0">
                                 <button type="button"
                                     class="btn-secondary !px-0 flex items-center justify-center w-[44px] h-[44px] text-lg font-bold"
-                                    :disabled="getQuantity(item.id, true) <= 0"
-                                    @click="decrementQuantity(item.id, true)">−</button>
-                                <span class="w-8 text-center text-white font-semibold tabular-nums">{{ getQuantity(item.id, true) }}</span>
+                                    :disabled="getQuantity(item.id, false) <= 0"
+                                    @click="decrementQuantity(item.id, false)">−</button>
+                                <span class="w-8 text-center text-white font-semibold tabular-nums">{{ getQuantity(item.id, false) }}</span>
                                 <button type="button"
                                     class="btn-primary !px-0 flex items-center justify-center w-[44px] h-[44px] text-lg font-bold"
-                                    :disabled="getQuantity(item.id, true) >= 99"
-                                    @click="incrementQuantity(item.id, true)">+</button>
+                                    :disabled="getQuantity(item.id, false) >= 99"
+                                    @click="incrementQuantity(item.id, false)">+</button>
+                            </div>
+                        </div>
+
+                        <!-- Parcel toggle (only when item has a parcel rate) -->
+                        <div v-if="Number(item.parcel_rate) > 0" class="mt-2 pt-2 border-t border-brand-black-lighter">
+                            <button type="button"
+                                class="btn-secondary text-xs px-3 py-1 min-h-[32px]"
+                                :class="parcelExpanded[item.id] ? 'text-brand-red-accent border-brand-red' : ''"
+                                @click="toggleParcel(item.id)">
+                                {{ parcelExpanded[item.id] ? '✕ Hide Parcel' : '+ Parcel' }}
+                            </button>
+
+                            <!-- Parcel sub-row -->
+                            <div v-if="parcelExpanded[item.id]" class="mt-2 flex items-center justify-between gap-3 pl-2">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-brand-gray-light text-sm font-medium">Parcel</p>
+                                    <p class="text-brand-gray-mid text-xs">
+                                        ₹{{ (Number(item.parcel_rate) * getQuantity(item.id, true)).toFixed(2) }} parcel
+                                    </p>
+                                </div>
+                                <div class="flex items-center gap-1 sm:gap-2 shrink-0">
+                                    <button type="button"
+                                        class="btn-secondary !px-0 flex items-center justify-center w-[44px] h-[44px] text-lg font-bold"
+                                        :disabled="getQuantity(item.id, true) <= 0"
+                                        @click="decrementQuantity(item.id, true)">−</button>
+                                    <span class="w-8 text-center text-white font-semibold tabular-nums">{{ getQuantity(item.id, true) }}</span>
+                                    <button type="button"
+                                        class="btn-primary !px-0 flex items-center justify-center w-[44px] h-[44px] text-lg font-bold"
+                                        :disabled="getQuantity(item.id, true) >= 99"
+                                        @click="incrementQuantity(item.id, true)">+</button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -187,6 +204,22 @@ const groupedMenuItems = computed(() => {
     }
     return order.map(cat => ({ category: cat, items: groups[cat] }));
 });
+
+// ── Accordion: which category is expanded (only one open at a time) ──
+const expandedCategory = ref(null);
+
+function toggleCategory(cat) {
+    expandedCategory.value = expandedCategory.value === cat ? null : cat;
+}
+
+// Count selected units (dine-in + parcel) for all items in a category
+function categorySelectedCount(group) {
+    let total = 0;
+    for (const item of group.items) {
+        total += getQuantity(item.id, false) + getQuantity(item.id, true);
+    }
+    return total;
+}
 
 // ── Inline notification ──────────────────────────────────────
 const notification = ref(null);
