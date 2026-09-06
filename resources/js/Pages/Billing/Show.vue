@@ -1,6 +1,51 @@
 <template>
     <div class="min-h-screen bg-brand-black p-4 sm:p-6">
 
+        <!-- ══ Print-only 58mm thermal receipt (hidden on screen) ══ -->
+        <div id="thermal-receipt">
+            <div class="tr-center tr-logo">WhiteJersey Cafe</div>
+            <div class="tr-center tr-sub">Fresh Brews &amp; Bites</div>
+            <div class="tr-sep"></div>
+
+            <div class="tr-meta">
+                <div><span>Bill</span><span>#{{ bill.id }}</span></div>
+                <div><span>Order</span><span>#{{ bill.order.id }}</span></div>
+                <div><span>Table</span><span>{{ table.table_number }}</span></div>
+                <div><span>Date</span><span>{{ formattedDate }}</span></div>
+                <div><span>Time</span><span>{{ formattedTime }}</span></div>
+            </div>
+            <div class="tr-sep"></div>
+
+            <table class="tr-items">
+                <thead>
+                    <tr>
+                        <th class="tr-l">Item</th>
+                        <th class="tr-c">Qty</th>
+                        <th class="tr-r">Amt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="item in bill.order.order_items" :key="'tr-' + item.id">
+                        <td class="tr-l">
+                            {{ item.menu_item?.name ?? ('Item #' + item.id) }}<template v-if="item.is_parcel"> (P)</template>
+                            <div class="tr-unit">@ ₹{{ fmt(effectiveUnitPrice(item)) }}</div>
+                        </td>
+                        <td class="tr-c">{{ item.quantity }}</td>
+                        <td class="tr-r">₹{{ fmt(lineTotal(item)) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="tr-sep"></div>
+            <div class="tr-total">
+                <span>TOTAL</span><span>₹{{ fmt(bill.grand_total) }}</span>
+            </div>
+            <div class="tr-sep"></div>
+
+            <div class="tr-center tr-thanks">Thank you! Visit again</div>
+            <div v-if="items_parcel_note" class="tr-center tr-sub">(P) = Parcel</div>
+        </div>
+
         <!-- Paid confirmation banner -->
         <div
             v-if="isSettled"
@@ -258,6 +303,11 @@ function fmt(value) {
     return Number(value).toFixed(2);
 }
 
+// Show the "(P) = Parcel" legend on the receipt only if any line is parcel
+const items_parcel_note = computed(() =>
+    (props.bill.order?.order_items ?? []).some(i => i.is_parcel)
+);
+
 // Effective per-unit price includes the parcel rate for parcel lines
 function effectiveUnitPrice(item) {
     const base = Number(item.unit_price);
@@ -294,14 +344,64 @@ function printBill() {
 </script>
 
 <style>
+/* Thermal receipt is hidden on screen, shown only when printing */
+#thermal-receipt { display: none; }
+
 @media print {
+    /* Hide the whole app UI, show only the thermal receipt */
     body * { visibility: hidden; }
-    #printable-bill, #printable-bill * { visibility: visible; }
-    #printable-bill {
-        position: absolute; top: 0; left: 0; width: 100%;
-        background: white !important;
-        color: black !important;
-        border: none !important;
+    #thermal-receipt, #thermal-receipt * { visibility: visible; }
+
+    #thermal-receipt {
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 58mm;
+        padding: 2mm;
+        margin: 0;
+        background: #fff;
+        color: #000;
+        font-family: "Courier New", monospace;
+        font-size: 11px;
+        line-height: 1.35;
+    }
+
+    /* Force a 58mm page with no browser margins */
+    @page {
+        size: 58mm auto;
+        margin: 0;
+    }
+
+    .tr-center { text-align: center; }
+    .tr-logo   { font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
+    .tr-sub    { font-size: 10px; }
+    .tr-thanks { font-size: 11px; margin-top: 2mm; font-weight: 700; }
+
+    .tr-sep {
+        border-top: 1px dashed #000;
+        margin: 1.5mm 0;
+    }
+
+    .tr-meta div {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+    }
+
+    .tr-items { width: 100%; border-collapse: collapse; }
+    .tr-items th, .tr-items td { padding: 0.6mm 0; vertical-align: top; }
+    .tr-items thead th { border-bottom: 1px solid #000; font-size: 10px; }
+    .tr-l { text-align: left;  width: 60%; word-break: break-word; }
+    .tr-c { text-align: center; width: 15%; }
+    .tr-r { text-align: right; width: 25%; white-space: nowrap; }
+    .tr-unit { font-size: 9px; color: #000; }
+
+    .tr-total {
+        display: flex;
+        justify-content: space-between;
+        font-weight: 700;
+        font-size: 14px;
     }
 }
 </style>
