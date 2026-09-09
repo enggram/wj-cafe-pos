@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class OrderController extends Controller
 {
@@ -83,5 +84,50 @@ class OrderController extends Controller
         // Go back to the order screen so staff can review and generate bill
         return redirect()->route('orders.create', $updatedOrder->table_id)
             ->with('success', 'Items added. Generate bill when ready.');
+    }
+
+    public function removeItem(int $order, int $orderItem)
+    {
+        try {
+            $updatedOrder = $this->orderService->removeItem($order, $orderItem);
+        } catch (ConflictHttpException | NotFoundHttpException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        // If the order still has items, return to the order screen.
+        if ($updatedOrder) {
+            return redirect()->route('orders.create', $updatedOrder->table_id)
+                ->with('success', 'Item removed.');
+        }
+
+        // Last item removed → order deleted and table freed. Go to tables overview.
+        return redirect()->route('orders.tables')
+            ->with('success', 'Order cleared. Table is now free.');
+    }
+
+    public function syncItems(Request $request, int $order)
+    {
+        $validated = $request->validate([
+            'items'                  => 'required|array|min:1',
+            'items.*.menu_item_id'   => 'required|integer|exists:menu_items,id',
+            'items.*.quantity'       => 'required|integer|min:0|max:99',
+            'items.*.sub_variety_id' => 'nullable|integer|exists:sub_varieties,id',
+            'items.*.is_parcel'      => 'nullable|boolean',
+        ]);
+
+        try {
+            $updatedOrder = $this->orderService->syncItems($order, $validated['items']);
+        } catch (ConflictHttpException | NotFoundHttpException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        if ($updatedOrder) {
+            return redirect()->route('orders.create', $updatedOrder->table_id)
+                ->with('success', 'Order updated.');
+        }
+
+        // All lines removed → order deleted and table freed.
+        return redirect()->route('orders.tables')
+            ->with('success', 'Order cleared. Table is now free.');
     }
 }

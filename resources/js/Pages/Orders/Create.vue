@@ -38,6 +38,7 @@
                             <th class="text-center text-brand-gray-mid py-2 px-2">Qty</th>
                             <th class="text-right text-brand-gray-mid py-2 pl-4">Price</th>
                             <th class="text-right text-brand-gray-mid py-2 pl-4">Total</th>
+                            <th class="text-right text-brand-gray-mid py-2 pl-4 w-10"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -60,6 +61,15 @@
                             <td class="py-2 pl-4 text-right text-white font-medium">
                                 ₹{{ lineTotal(item).toFixed(2) }}
                             </td>
+                            <td class="py-2 pl-4 text-right">
+                                <button type="button"
+                                    class="text-brand-gray-mid hover:text-brand-red-accent text-lg leading-none px-2 disabled:opacity-40"
+                                    :disabled="removingItemId === item.id"
+                                    title="Remove item"
+                                    @click="removeOrderItem(item)">
+                                    {{ removingItemId === item.id ? '…' : '✕' }}
+                                </button>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -76,9 +86,12 @@
 
         <!-- Select Items -->
         <section class="mb-24">
-            <h2 class="text-lg font-semibold text-white mb-3">
-                {{ existingOrder ? 'Add More Items' : 'Select Items' }}
+            <h2 class="text-lg font-semibold text-white mb-1">
+                {{ existingOrder ? 'Edit Items' : 'Select Items' }}
             </h2>
+            <p v-if="existingOrder" class="text-brand-gray-mid text-xs mb-3">
+                Quantities show what's already in the order. Adjust with − / +, then tap Update Order. Set to 0 to remove.
+            </p>
 
             <div v-if="menuItems.length === 0" class="card">
                 <p class="text-brand-gray-mid">No menu items available. Add items in Menu Management first.</p>
@@ -170,13 +183,13 @@
         <div class="fixed bottom-0 left-0 right-0 bg-brand-black border-t border-brand-black-lighter px-4 py-4 sm:px-6">
             <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
                 <div>
-                    <p class="text-white font-semibold">{{ selectedItemsCount }} item{{ selectedItemsCount !== 1 ? 's' : '' }} selected</p>
+                    <p class="text-white font-semibold">{{ selectedItemsCount }} line{{ selectedItemsCount !== 1 ? 's' : '' }}{{ existingOrder ? ' in order' : ' selected' }}</p>
                     <p v-if="form.errors.items" class="text-brand-red-light text-xs mt-0.5">{{ form.errors.items }}</p>
                 </div>
                 <button type="button" class="btn-primary px-8"
-                    :disabled="form.processing || selectedItemsCount === 0"
+                    :disabled="form.processing || (!existingOrder && selectedItemsCount === 0)"
                     @click="submitOrder">
-                    {{ form.processing ? '⏳ Saving...' : (existingOrder ? '➕ Add Items' : '✓ Create Order') }}
+                    {{ form.processing ? '⏳ Saving...' : (existingOrder ? '💾 Update Order' : '✓ Create Order') }}
                 </button>
             </div>
         </div>
@@ -184,7 +197,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { Link, useForm, router } from '@inertiajs/vue3';
 
 const props = defineProps({
@@ -235,6 +248,34 @@ const quantities = reactive({});
 // Per-item UI state: whether the parcel sub-row is expanded
 const parcelExpanded = ref({});
 
+// Keys of lines currently on the order (rebuilt whenever the order reloads).
+// Used to send the full desired state on update, even lines the user did not touch.
+let seededKeys = new Set();
+
+// Re-seed steppers from the order whenever the order props change (initial load,
+// after a remove via the top ✕, or after an update). This keeps the bottom
+// steppers in sync with what is actually on the order.
+function seedFromOrder(order) {
+    // Clear any previous seeded quantities so removed lines drop back to 0.
+    for (const k of Object.keys(quantities)) {
+        quantities[k] = 0;
+    }
+    seededKeys = new Set();
+    parcelExpanded.value = {};
+
+    if (order?.order_items?.length) {
+        for (const oi of order.order_items) {
+            const isParcel = !!oi.is_parcel;
+            const key = `${oi.menu_item_id}:${isParcel ? 1 : 0}`;
+            quantities[key] = oi.quantity;
+            seededKeys.add(key);
+            if (isParcel) parcelExpanded.value[oi.menu_item_id] = true;
+        }
+    }
+}
+
+watch(() => props.existingOrder, (order) => seedFromOrder(order), { immediate: true, deep: true });
+
 function lineKey(itemId, isParcel) { return `${itemId}:${isParcel ? 1 : 0}`; }
 
 function getQuantity(itemId, isParcel = false) {
@@ -279,35 +320,41 @@ const orderTotal = computed(() => {
 const form = useForm({ table_id: props.table.id, items: [] });
 
 function submitOrder() {
-    const items = Object.entries(quantities)
-        .filter(([, qty]) => qty > 0)
-        .map(([key, qty]) => {
-            const [itemId, parcelFlag] = key.split(':');
-            return {
-                menu_item_id:   parseInt(itemId),
-                quantity:       qty,
-                sub_variety_id: null,
-                is_parcel:      parcelFlag === '1',
-            };
-        });
+    const toLine = ([key, qty]) => {
+        const [itemId, parcelFlag] = key.split(':');
+        return {
+            menu_item_id:   parseInt(itemId),
+            quantity:       qty,
+            sub_variety_id: null,
+            is_parcel:      parcelFlag === '1',
+        };
+    };
 
+    if (props.existingOrder) {
+        // Editing an existing order: send the ABSOLUTE desired quantity for every
+        // line the user changed plus every line already on the order (so quantity
+        // reductions and removals are applied). quantity 0 removes the line.
+        const keys = new Set([...seededKeys, ...Object.keys(quantities).filter(k => (quantities[k] || 0) > 0)]);
+        const items = [...keys].map(k => toLine([k, quantities[k] || 0]));
+
+        form.items = items;
+        form.put(`/orders/${props.existingOrder.id}/items`, {
+            onError: () => showNotification('error', 'Failed to update the order. Please try again.'),
+        });
+        // Success follows the redirect back to the order screen with fresh seeded state.
+        return;
+    }
+
+    // New order: only lines with a positive quantity.
+    const items = Object.entries(quantities).filter(([, qty]) => qty > 0).map(toLine);
     form.table_id = props.table.id;
     form.items    = items;
 
-    // Reset local quantities before submit so the redirected page shows fresh state
     const resetQuantities = () => Object.keys(quantities).forEach(k => { quantities[k] = 0; });
-
-    if (props.existingOrder) {
-        form.post(`/orders/${props.existingOrder.id}/items`, {
-            onFinish: resetQuantities,
-            onError: () => showNotification('error', 'Failed to add items. Please try again.'),
-        });
-    } else {
-        form.post('/orders', {
-            onFinish: resetQuantities,
-            onError: () => showNotification('error', 'Failed to create order. Please try again.'),
-        });
-    }
+    form.post('/orders', {
+        onFinish: resetQuantities,
+        onError: () => showNotification('error', 'Failed to create order. Please try again.'),
+    });
 }
 
 // ── Bill generation ──────────────────────────────────────────
@@ -318,5 +365,21 @@ function generateBill() {
         onError: () => showNotification('error', 'Could not generate bill. Make sure there are items in the order.'),
     });
     // On success Inertia follows the redirect to /billing/{table} automatically
+}
+
+// ── Remove a single line from the active order ───────────────
+const removingItemId = ref(null);
+
+function removeOrderItem(item) {
+    if (!props.existingOrder) return;
+    const label = item.menu_item?.name ?? `Item #${item.menu_item_id}`;
+    if (!confirm(`Remove "${label}" from this order?`)) return;
+
+    removingItemId.value = item.id;
+    router.delete(`/orders/${props.existingOrder.id}/items/${item.id}`, {
+        preserveScroll: true,
+        onError: () => showNotification('error', 'Could not remove the item. Please try again.'),
+        onFinish: () => { removingItemId.value = null; },
+    });
 }
 </script>

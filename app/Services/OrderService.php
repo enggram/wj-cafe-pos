@@ -128,6 +128,152 @@ class OrderService implements OrderServiceInterface
     }
 
     /**
+     * Reconcile an active order to a desired set of line quantities.
+     *
+     * Each entry sets the ABSOLUTE target quantity for the line identified by
+     * (menu_item_id, sub_variety_id, is_parcel):
+     *   - quantity > 0 and line exists  → update quantity
+     *   - quantity > 0 and line missing → create line (snapshotting price)
+     *   - quantity === 0 and line exists → delete line
+     * Lines not present in $items are left untouched.
+     *
+     * If the order ends up with no items, it is deleted and the table freed.
+     *
+     * @param int $orderId
+     * @param array $items Array of ['menu_item_id' => int, 'quantity' => int (>= 0), 'sub_variety_id' => int|null, 'is_parcel' => bool]
+     * @return Order|null  Updated order, or null if the order was deleted (no items left).
+     *
+     * @throws NotFoundHttpException If order does not exist
+     * @throws ConflictHttpException If order is not active
+     * @throws ValidationException If quantities are invalid
+     */
+    public function syncItems(int $orderId, array $items): ?Order
+    {
+        $order = Order::find($orderId);
+
+        if (! $order) {
+            throw new NotFoundHttpException('Order not found.');
+        }
+
+        if ($order->status !== OrderStatus::Active) {
+            throw new ConflictHttpException('Cannot modify an order that is not active.');
+        }
+
+        // Allow quantity 0 here (means "remove this line"); reject negatives / non-ints / > 99.
+        foreach ($items as $index => $item) {
+            if (! isset($item['menu_item_id'])) {
+                throw ValidationException::withMessages([
+                    "items.{$index}.menu_item_id" => ['Menu item is required.'],
+                ]);
+            }
+            $quantity = $item['quantity'] ?? null;
+            if (! is_int($quantity) || $quantity < 0 || $quantity > 99) {
+                throw ValidationException::withMessages([
+                    "items.{$index}.quantity" => ['Quantity must be an integer between 0 and 99.'],
+                ]);
+            }
+        }
+
+        foreach ($items as $item) {
+            $menuItemId = $item['menu_item_id'];
+            $subVarietyId = $item['sub_variety_id'] ?? null;
+            $quantity = (int) $item['quantity'];
+            $isParcel = (bool) ($item['is_parcel'] ?? false);
+
+            $existingItem = $order->orderItems()
+                ->where('menu_item_id', $menuItemId)
+                ->where('sub_variety_id', $subVarietyId)
+                ->where('is_parcel', $isParcel)
+                ->first();
+
+            if ($quantity === 0) {
+                // Remove the line if it exists; nothing to do otherwise.
+                if ($existingItem) {
+                    $existingItem->delete();
+                }
+                continue;
+            }
+
+            if ($existingItem) {
+                $existingItem->update(['quantity' => $quantity]);
+            } else {
+                $order->orderItems()->create([
+                    'menu_item_id' => $menuItemId,
+                    'sub_variety_id' => $subVarietyId,
+                    'quantity' => $quantity,
+                    'unit_price' => $this->resolveUnitPrice($menuItemId, $subVarietyId),
+                    'is_parcel' => $isParcel,
+                    'parcel_rate' => $this->resolveParcelRate($menuItemId),
+                ]);
+            }
+        }
+
+        // If the order now has no items, delete it and free the table.
+        if ($order->orderItems()->count() === 0) {
+            $tableId = $order->table_id;
+            $order->delete();
+
+            $table = Table::find($tableId);
+            if ($table) {
+                $table->update(['status' => TableStatus::Vacant]);
+            }
+
+            return null;
+        }
+
+        return $order->load('orderItems');
+    }
+
+    /**
+     * Remove a single item line from an active order.
+     *
+     * If the removed line was the last item on the order, the order itself is
+     * deleted and the table is freed (so we never leave an empty active order).
+     *
+     * @param int $orderId
+     * @param int $orderItemId
+     * @return Order|null  The updated order, or null if the order was deleted (last item removed).
+     *
+     * @throws NotFoundHttpException If the order or item does not exist / does not belong to the order
+     * @throws ConflictHttpException If the order is not active
+     */
+    public function removeItem(int $orderId, int $orderItemId): ?Order
+    {
+        $order = Order::find($orderId);
+
+        if (! $order) {
+            throw new NotFoundHttpException('Order not found.');
+        }
+
+        if ($order->status !== OrderStatus::Active) {
+            throw new ConflictHttpException('Cannot modify an order that is not active.');
+        }
+
+        $item = $order->orderItems()->whereKey($orderItemId)->first();
+
+        if (! $item) {
+            throw new NotFoundHttpException('Order item not found on this order.');
+        }
+
+        $item->delete();
+
+        // If no items remain, remove the order and free the table.
+        if ($order->orderItems()->count() === 0) {
+            $tableId = $order->table_id;
+            $order->delete();
+
+            $table = Table::find($tableId);
+            if ($table) {
+                $table->update(['status' => TableStatus::Vacant]);
+            }
+
+            return null;
+        }
+
+        return $order->load('orderItems');
+    }
+
+    /**
      * Get the active order for a table, or null if none exists.
      *
      * @param int $tableId

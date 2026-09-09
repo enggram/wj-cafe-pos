@@ -35,6 +35,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/orders/create/{table}', [OrderController::class, 'create'])->name('orders.create');
     Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
     Route::post('/orders/{order}/items', [OrderController::class, 'addItems'])->name('orders.addItems');
+    Route::delete('/orders/{order}/items/{orderItem}', [OrderController::class, 'removeItem'])->name('orders.removeItem');
+    Route::put('/orders/{order}/items', [OrderController::class, 'syncItems'])->name('orders.syncItems');
 
     Route::post('/billing/generate/{table}', [BillingController::class, 'generate'])->name('billing.generate');
     Route::get('/billing/{table}', [BillingController::class, 'show'])->name('billing.show');
