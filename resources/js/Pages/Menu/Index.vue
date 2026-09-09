@@ -84,25 +84,6 @@ function deactivateItem(item) {
         router.patch(`/menu/${item.id}/deactivate`, {}, { preserveScroll: true });
     }
 }
-
-// ── Sub-variety management ─────────────────────────────────────
-const expandedItems    = ref({});
-const subVarietyForms  = ref({});
-
-function toggleSubVarieties(itemId) {
-    expandedItems.value[itemId] = !expandedItems.value[itemId];
-    if (!subVarietyForms.value[itemId]) {
-        subVarietyForms.value[itemId] = useForm({ name: '', price_adjustment: '' });
-    }
-}
-
-function submitSubVariety(itemId) {
-    const subForm = subVarietyForms.value[itemId];
-    subForm.post(`/menu/${itemId}/sub-varieties`, {
-        preserveScroll: true,
-        onSuccess: () => subForm.reset(),
-    });
-}
 </script>
 
 <template>
@@ -297,50 +278,7 @@ function submitSubVariety(itemId) {
                                     class="btn-secondary text-sm text-brand-red-light border-brand-red hover:bg-brand-red hover:text-white"
                                     @click="deactivateItem(item)"
                                 >Deactivate</button>
-                                <button
-                                    type="button"
-                                    class="btn-secondary text-sm"
-                                    @click="toggleSubVarieties(item.id)"
-                                >{{ expandedItems[item.id] ? 'Hide Varieties' : 'Sub-Varieties' }}</button>
                             </div>
-                        </div>
-
-                        <!-- Sub-varieties list -->
-                        <div v-if="item.sub_varieties && item.sub_varieties.length > 0" class="mt-3 pl-4 border-l-2 border-brand-black-lighter">
-                            <p class="text-xs text-brand-gray-mid uppercase tracking-wide mb-2">Sub-Varieties</p>
-                            <ul class="space-y-1">
-                                <li v-for="sv in item.sub_varieties" :key="sv.id" class="flex items-center justify-between text-sm">
-                                    <span class="text-brand-gray-light">{{ sv.name }}</span>
-                                    <span v-if="Number(sv.price_adjustment) !== 0" class="text-brand-gray-mid">
-                                        {{ Number(sv.price_adjustment) > 0 ? '+' : '' }}₹{{ Number(sv.price_adjustment).toFixed(2) }}
-                                    </span>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <!-- Add sub-variety form -->
-                        <div v-if="expandedItems[item.id]" class="mt-4 pt-4 border-t border-brand-black-lighter">
-                            <p class="text-sm font-medium text-brand-gray-light mb-3">Add Sub-Variety</p>
-                            <form @submit.prevent="submitSubVariety(item.id)" class="flex flex-col sm:flex-row gap-3">
-                                <input
-                                    v-model="subVarietyForms[item.id].name"
-                                    type="text"
-                                    :class="subVarietyForms[item.id]?.errors?.name ? 'input-field-error' : 'input-field'"
-                                    class="flex-1"
-                                    placeholder="Variety name"
-                                    maxlength="100"
-                                />
-                                <input
-                                    v-model="subVarietyForms[item.id].price_adjustment"
-                                    type="number" step="0.01"
-                                    :class="subVarietyForms[item.id]?.errors?.price_adjustment ? 'input-field-error' : 'input-field'"
-                                    class="w-full sm:w-32"
-                                    placeholder="± Price"
-                                />
-                                <button type="submit" class="btn-primary text-sm" :disabled="subVarietyForms[item.id]?.processing">
-                                    {{ subVarietyForms[item.id]?.processing ? 'Adding...' : 'Add' }}
-                                </button>
-                            </form>
                         </div>
                     </div>
                 </div>
