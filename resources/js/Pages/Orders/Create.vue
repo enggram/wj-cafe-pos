@@ -97,13 +97,34 @@
                 <p class="text-brand-gray-mid">No menu items available. Add items in Menu Management first.</p>
             </div>
 
+            <!-- Search box -->
+            <div v-if="menuItems.length > 0" class="relative mb-3">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-brand-gray-mid pointer-events-none">🔍</span>
+                <input
+                    v-model="search"
+                    type="text"
+                    inputmode="search"
+                    placeholder="Search items by name..."
+                    class="input-field w-full pl-9 pr-10"
+                />
+                <button v-if="isSearching" type="button"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 text-brand-gray-mid hover:text-brand-red-accent text-lg leading-none px-2"
+                    title="Clear search"
+                    @click="clearSearch">✕</button>
+            </div>
+
+            <!-- No search results -->
+            <div v-if="menuItems.length > 0 && isSearching && searchResultCount === 0" class="card">
+                <p class="text-brand-gray-mid">No items match "{{ search.trim() }}".</p>
+            </div>
+
             <!-- Category accordion: grid of tiles, click to expand items -->
             <div class="space-y-3">
-                <div v-for="group in groupedMenuItems" :key="group.category">
+                <div v-for="group in filteredGroups" :key="group.category">
                     <!-- Category tile -->
                     <button type="button"
                         class="w-full card !p-4 flex items-center justify-between gap-3 text-left transition-colors"
-                        :class="expandedCategory === group.category ? 'border-brand-red' : ''"
+                        :class="isCategoryOpen(group.category) ? 'border-brand-red' : ''"
                         @click="toggleCategory(group.category)">
                         <div class="flex items-center gap-3 min-w-0">
                             <span class="text-white font-semibold truncate">{{ group.category }}</span>
@@ -114,11 +135,11 @@
                             </span>
                         </div>
                         <span class="text-brand-red-accent text-lg shrink-0 transition-transform"
-                              :class="expandedCategory === group.category ? 'rotate-180' : ''">▾</span>
+                              :class="isCategoryOpen(group.category) ? 'rotate-180' : ''">▾</span>
                     </button>
 
                     <!-- Expanded items -->
-                    <div v-if="expandedCategory === group.category" class="space-y-2 mt-2 pl-1">
+                    <div v-if="isCategoryOpen(group.category)" class="space-y-2 mt-2 pl-1">
                     <div v-for="item in group.items" :key="item.id"
                          class="card !p-3 sm:!p-4">
                         <!-- Dine-in row -->
@@ -218,17 +239,55 @@ const groupedMenuItems = computed(() => {
     return order.map(cat => ({ category: cat, items: groups[cat] }));
 });
 
+// ── Search: filter items across all categories by name ──────────
+const search = ref('');
+
+const isSearching = computed(() => search.value.trim().length > 0);
+
+// Groups filtered by the search term (empty categories dropped).
+const filteredGroups = computed(() => {
+    const term = search.value.trim().toLowerCase();
+    if (!term) return groupedMenuItems.value;
+
+    return groupedMenuItems.value
+        .map(group => ({
+            category: group.category,
+            items: group.items.filter(item => item.name.toLowerCase().includes(term)),
+        }))
+        .filter(group => group.items.length > 0);
+});
+
+// Total matching items (used for the "no results" message).
+const searchResultCount = computed(() =>
+    filteredGroups.value.reduce((sum, g) => sum + g.items.length, 0)
+);
+
+function clearSearch() {
+    search.value = '';
+}
+
 // ── Accordion: which category is expanded (only one open at a time) ──
 const expandedCategory = ref(null);
 
+// While searching, every matching category is auto-expanded so results are
+// visible without clicking. Otherwise, only the tapped category is open.
+function isCategoryOpen(cat) {
+    return isSearching.value || expandedCategory.value === cat;
+}
+
 function toggleCategory(cat) {
+    // Ignore manual toggles while searching (all are shown expanded).
+    if (isSearching.value) return;
     expandedCategory.value = expandedCategory.value === cat ? null : cat;
 }
 
-// Count selected units (dine-in + parcel) for all items in a category
+// Count selected units (dine-in + parcel) for a category. Looks up the full,
+// unfiltered category by name so the badge stays correct while searching.
 function categorySelectedCount(group) {
+    const full = groupedMenuItems.value.find(g => g.category === group.category);
+    const items = full ? full.items : group.items;
     let total = 0;
-    for (const item of group.items) {
+    for (const item of items) {
         total += getQuantity(item.id, false) + getQuantity(item.id, true);
     }
     return total;
