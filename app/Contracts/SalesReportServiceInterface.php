@@ -9,6 +9,8 @@ interface SalesReportServiceInterface
 {
     public function dailyReport(Carbon $date): SalesReportDTO;
 
+    public function rangeReport(Carbon $start, Carbon $end, string $periodLabel): SalesReportDTO;
+
     public function weeklyReport(Carbon $startDate): SalesReportDTO;
 
     public function monthlyReport(int $year, int $month): SalesReportDTO;

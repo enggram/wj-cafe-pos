@@ -409,9 +409,11 @@ function submitOrder() {
     form.table_id = props.table.id;
     form.items    = items;
 
-    const resetQuantities = () => Object.keys(quantities).forEach(k => { quantities[k] = 0; });
+    // NOTE: do NOT reset quantities here. On success the server redirects back
+    // to this screen with the new order in props, and the seedFromOrder watcher
+    // re-seeds the steppers from the real order. A manual reset would run AFTER
+    // seeding and wipe it, leaving the bottom steppers stuck at 0 until refresh.
     form.post('/orders', {
-        onFinish: resetQuantities,
         onError: () => showNotification('error', 'Failed to create order. Please try again.'),
     });
 }

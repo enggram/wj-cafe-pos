@@ -32,7 +32,7 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        // Admins land on the Menu page; staff land on the table overview.
+        // All users land on the dashboard.
         return redirect($this->homeFor(Auth::user()));
     }
 
@@ -46,12 +46,10 @@ class AuthController extends Controller
     }
 
     /**
-     * Decide where a user lands after login based on their role.
+     * Where a user lands after login. All roles land on the dashboard.
      */
     private function homeFor($user): string
     {
-        return $user->isAdmin()
-            ? route('menu.index')
-            : route('orders.tables');
+        return route('dashboard');
     }
 }

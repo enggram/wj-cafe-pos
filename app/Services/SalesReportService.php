@@ -52,6 +52,14 @@ class SalesReportService implements SalesReportServiceInterface
         return $this->buildReport($start, $end, $periodLabel);
     }
 
+    /**
+     * Build a sales report for an arbitrary date range (inclusive).
+     */
+    public function rangeReport(Carbon $start, Carbon $end, string $periodLabel): SalesReportDTO
+    {
+        return $this->buildReport($start->copy()->startOfDay(), $end->copy()->endOfDay(), $periodLabel);
+    }
+
     private function buildReport(Carbon $start, Carbon $end, string $periodLabel): SalesReportDTO
     {
         // Get bills within the period that belong to completed orders

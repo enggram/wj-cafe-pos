@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\BillingController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\ExpenseController;
@@ -23,12 +24,13 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    // Home → role-based landing (admin: menu, staff: orders)
+    // Home → dashboard for all authenticated users
     Route::get('/', function () {
-        return redirect(auth()->user()->isAdmin()
-            ? route('menu.index')
-            : route('orders.tables'));
+        return redirect()->route('dashboard');
     });
+
+    // Dashboard — available to all authenticated users (staff + admin)
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Orders & Billing — staff + admin
     Route::get('/orders/tables', [OrderController::class, 'tableOverview'])->name('orders.tables');
@@ -65,6 +67,10 @@ Route::middleware('auth')->group(function () {
         // Reports
         Route::get('/reports/sales', [SalesReportController::class, 'index'])->name('reports.sales');
         Route::get('/reports/profit-loss', [ProfitLossController::class, 'index'])->name('reports.profit-loss');
+
+        // Bill history (view + reprint past bills)
+        Route::get('/billing-history', [BillingController::class, 'history'])->name('billing.history');
+        Route::get('/billing-history/{bill}', [BillingController::class, 'historyShow'])->name('billing.history.show');
 
         // Inventory
         Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');

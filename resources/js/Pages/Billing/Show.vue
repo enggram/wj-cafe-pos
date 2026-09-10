@@ -70,7 +70,8 @@
             </div>
             <div class="flex gap-2 flex-wrap">
                 <button type="button" class="btn-secondary text-sm" @click="printBill">🖨️ Print</button>
-                <Link href="/orders/tables" class="btn-secondary text-sm">← All Tables</Link>
+                <Link v-if="readOnly" href="/billing-history" class="btn-secondary text-sm">← Bill History</Link>
+                <Link v-else href="/orders/tables" class="btn-secondary text-sm">← All Tables</Link>
             </div>
         </header>
 
@@ -137,8 +138,8 @@
             </div>
         </div>
 
-        <!-- Action buttons -->
-        <div class="flex flex-wrap items-center gap-3">
+        <!-- Action buttons (hidden for read-only history reprints) -->
+        <div v-if="!readOnly" class="flex flex-wrap items-center gap-3">
             <template v-if="isSettled">
                 <Link href="/orders/tables" class="btn-primary px-8">← Back to Tables</Link>
             </template>
@@ -157,7 +158,7 @@
         </div>
 
         <!-- Cash payment panel -->
-        <div v-if="showPayment && !isSettled" class="card mt-4 max-w-md">
+        <div v-if="showPayment && !isSettled && !readOnly" class="card mt-4 max-w-md">
             <h3 class="text-lg font-semibold text-white mb-4">Cash Payment</h3>
 
             <!-- Amount due -->
@@ -244,9 +245,10 @@ import { computed, ref } from 'vue';
 import { Link, useForm, usePage } from '@inertiajs/vue3';
 
 const props = defineProps({
-    bill:    { type: Object, required: true },
-    table:   { type: Object, required: true },
-    settled: { type: Boolean, default: false },
+    bill:     { type: Object, required: true },
+    table:    { type: Object, required: true },
+    settled:  { type: Boolean, default: false },
+    readOnly: { type: Boolean, default: false },
 });
 
 const page        = usePage();
