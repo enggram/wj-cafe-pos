@@ -99,7 +99,13 @@ class SalesReportService implements SalesReportServiceInterface
             ->join('menu_items', 'order_items.menu_item_id', '=', 'menu_items.id')
             ->where('orders.status', OrderStatus::Completed->value)
             ->whereBetween('bills.billed_at', [$start, $end])
-            ->selectRaw('menu_items.name as name, SUM(order_items.quantity) as quantity_sold, SUM(order_items.unit_price * order_items.quantity) as revenue')
+            ->selectRaw(
+                'menu_items.name as name, '
+                . 'SUM(order_items.quantity) as quantity_sold, '
+                . 'SUM(order_items.unit_price * order_items.quantity '
+                . '+ CASE WHEN order_items.is_parcel = 1 '
+                . 'THEN order_items.parcel_rate * order_items.quantity ELSE 0 END) as revenue'
+            )
             ->groupBy('menu_items.name')
             ->orderByDesc('quantity_sold')
             ->get();
