@@ -16,6 +16,32 @@ class ProfitLossService implements ProfitLossServiceInterface
         private readonly ExpenseServiceInterface $expenseService,
     ) {}
 
+    public function dailyReport(Carbon $date): ProfitLossDTO
+    {
+        $start = $date->copy()->startOfDay();
+        $end   = $date->copy()->endOfDay();
+
+        $revenue            = round($this->calculateRevenue($start, $end), 2);
+        $inventoryPurchases = round($this->calculateInventoryPurchases($start, $end), 2);
+        $totalExpenses      = $this->expenseService->expenseTotalForPeriod($start, $end);
+        $expenseBreakdown   = $this->expenseService->expenseBreakdownForPeriod($start, $end);
+        $spending           = round($inventoryPurchases + $totalExpenses, 2);
+        $net                = round($revenue - $spending, 2);
+
+        $periodLabel = 'Daily: ' . $start->format('M d, Y');
+
+        return new ProfitLossDTO(
+            totalEarnings: $revenue,
+            totalSpending: $spending,
+            netAmount: $net,
+            status: $this->determineStatus($net),
+            periodLabel: $periodLabel,
+            inventoryPurchases: $inventoryPurchases,
+            totalExpenses: $totalExpenses,
+            expenseBreakdown: $expenseBreakdown,
+        );
+    }
+
     public function weeklyReport(Carbon $startDate): ProfitLossDTO
     {
         // Adjust to Monday of the given week

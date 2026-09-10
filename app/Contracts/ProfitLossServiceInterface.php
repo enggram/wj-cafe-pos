@@ -7,6 +7,8 @@ use Carbon\Carbon;
 
 interface ProfitLossServiceInterface
 {
+    public function dailyReport(Carbon $date): ProfitLossDTO;
+
     public function weeklyReport(Carbon $startDate): ProfitLossDTO;
 
     public function monthlyReport(int $year, int $month): ProfitLossDTO;

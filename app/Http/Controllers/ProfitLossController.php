@@ -18,6 +18,10 @@ class ProfitLossController extends Controller
     {
         $period = $request->query('period', 'weekly');
 
+        $date = $request->query('date')
+            ? Carbon::parse($request->query('date'))
+            : Carbon::now();
+
         $weekStart = $request->query('week_start')
             ? Carbon::parse($request->query('week_start'))
             : Carbon::now()->startOfWeek(Carbon::MONDAY);
@@ -26,6 +30,7 @@ class ProfitLossController extends Controller
         $month = (int) $request->query('month', Carbon::now()->month);
 
         $report = match ($period) {
+            'daily'   => $this->profitLossService->dailyReport($date),
             'monthly' => $this->profitLossService->monthlyReport($year, $month),
             'yearly'  => $this->profitLossService->yearlyReport($year),
             default   => $this->profitLossService->weeklyReport($weekStart),
@@ -51,6 +56,7 @@ class ProfitLossController extends Controller
             ],
             'filters' => [
                 'period'     => $period,
+                'date'       => $date->toDateString(),
                 'week_start' => $weekStart->toDateString(),
                 'year'       => $year,
                 'month'      => $month,

@@ -30,6 +30,7 @@ const props = defineProps({
         type: Object,
         default: () => ({
             period: 'monthly',
+            date: new Date().toISOString().split('T')[0],
             year: new Date().getFullYear(),
             month: new Date().getMonth() + 1,
             week_start: null,
@@ -39,6 +40,7 @@ const props = defineProps({
 
 // --- Period selector ---
 const periods = [
+    { value: 'daily', label: 'Daily' },
     { value: 'weekly', label: 'Weekly' },
     { value: 'monthly', label: 'Monthly' },
     { value: 'yearly', label: 'Yearly' },
@@ -48,6 +50,7 @@ const selectedPeriod = ref(props.filters.period || 'monthly');
 const selectedYear = ref(props.filters.year || new Date().getFullYear());
 const selectedMonth = ref(props.filters.month || new Date().getMonth() + 1);
 const selectedWeekStart = ref(props.filters.week_start || getMondayOfCurrentWeek());
+const selectedDate = ref(props.filters.date || new Date().toISOString().split('T')[0]);
 
 function getMondayOfCurrentWeek() {
     const now = new Date();
@@ -87,7 +90,9 @@ const months = [
 function applyFilters() {
     const params = { period: selectedPeriod.value };
 
-    if (selectedPeriod.value === 'weekly') {
+    if (selectedPeriod.value === 'daily') {
+        params.date = selectedDate.value;
+    } else if (selectedPeriod.value === 'weekly') {
         params.week_start = selectedWeekStart.value;
     } else if (selectedPeriod.value === 'monthly') {
         params.year = selectedYear.value;
@@ -178,6 +183,20 @@ const statusConfig = computed(() => {
 
             <!-- Date picker based on period type -->
             <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-4">
+                <!-- Daily: single date picker -->
+                <div v-if="selectedPeriod === 'daily'" class="w-full sm:w-auto">
+                    <label for="daily-date" class="block text-sm font-medium text-brand-gray-light mb-1">
+                        Date
+                    </label>
+                    <input
+                        id="daily-date"
+                        v-model="selectedDate"
+                        type="date"
+                        class="input-field w-full sm:w-auto"
+                        @change="applyFilters"
+                    />
+                </div>
+
                 <!-- Weekly: date picker for week start -->
                 <div v-if="selectedPeriod === 'weekly'" class="w-full sm:w-auto">
                     <label for="week-start-date" class="block text-sm font-medium text-brand-gray-light mb-1">
