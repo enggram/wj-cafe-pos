@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, nextTick } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 
 const props = defineProps({
@@ -48,6 +48,7 @@ function activateCategory(cat) {
 
 // ── Menu item management ───────────────────────────────────────
 const editingItem = ref(null);
+const formSection = ref(null);
 
 const form = useForm({ name: '', price: '', category_id: '', parcel_rate: 0 });
 
@@ -57,6 +58,11 @@ function startEdit(item) {
     form.price       = item.price;
     form.category_id = item.category_id;
     form.parcel_rate = item.parcel_rate ?? 0;
+
+    // Bring the form into view (it lives at the top of the page).
+    nextTick(() => {
+        formSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
 }
 
 function cancelEdit() {
@@ -83,6 +89,10 @@ function deactivateItem(item) {
     if (confirm(`Deactivate "${item.name}"?`)) {
         router.patch(`/menu/${item.id}/deactivate`, {}, { preserveScroll: true });
     }
+}
+
+function activateItem(item) {
+    router.patch(`/menu/${item.id}/activate`, {}, { preserveScroll: true });
 }
 </script>
 
@@ -172,7 +182,7 @@ function deactivateItem(item) {
         </section>
 
         <!-- ── Add / Edit Menu Item Form ──────────────────────── -->
-        <section class="card mb-8">
+        <section ref="formSection" class="card mb-8">
             <h2 class="text-xl font-semibold text-white mb-4">
                 {{ editingItem ? 'Edit Menu Item' : 'Add New Menu Item' }}
             </h2>
@@ -262,10 +272,17 @@ function deactivateItem(item) {
                 </p>
 
                 <div class="space-y-3">
-                    <div v-for="item in category.menu_items" :key="item.id" class="card">
+                    <div v-for="item in category.menu_items" :key="item.id" class="card"
+                         :class="item.is_active ? '' : 'opacity-60 border border-brand-black-lighter'">
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div class="flex-1">
-                                <h4 class="text-white font-medium">{{ item.name }}</h4>
+                                <h4 class="text-white font-medium">
+                                    {{ item.name }}
+                                    <span v-if="!item.is_active"
+                                        class="ml-2 text-xs px-2 py-0.5 rounded-full bg-brand-black-lighter text-brand-gray-mid align-middle">
+                                        Inactive
+                                    </span>
+                                </h4>
                                 <p class="text-brand-gray-light text-sm">
                                     ₹{{ Number(item.price).toFixed(2) }}
                                     <span v-if="Number(item.parcel_rate) > 0" class="text-xs text-brand-red-accent">· Parcel ₹{{ Number(item.parcel_rate).toFixed(2) }}</span>
@@ -274,10 +291,17 @@ function deactivateItem(item) {
                             <div class="flex flex-wrap gap-2">
                                 <button type="button" class="btn-secondary text-sm" @click="startEdit(item)">Edit</button>
                                 <button
+                                    v-if="item.is_active"
                                     type="button"
                                     class="btn-secondary text-sm text-brand-red-light border-brand-red hover:bg-brand-red hover:text-white"
                                     @click="deactivateItem(item)"
                                 >Deactivate</button>
+                                <button
+                                    v-else
+                                    type="button"
+                                    class="btn-secondary text-sm text-green-400 border-green-600 hover:bg-green-700 hover:text-white"
+                                    @click="activateItem(item)"
+                                >Activate</button>
                             </div>
                         </div>
                     </div>

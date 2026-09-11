@@ -14,6 +14,8 @@ interface MenuServiceInterface
 
     public function deactivateItem(int $id): void;
 
+    public function activateItem(int $id): void;
+
     public function listByCategory(): Collection;
 
     public function getActiveItems(): Collection;

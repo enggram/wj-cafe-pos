@@ -56,6 +56,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/menu', [MenuController::class, 'store'])->name('menu.store');
         Route::put('/menu/{id}', [MenuController::class, 'update'])->name('menu.update');
         Route::patch('/menu/{id}/deactivate', [MenuController::class, 'deactivate'])->name('menu.deactivate');
+        Route::patch('/menu/{id}/activate', [MenuController::class, 'activate'])->name('menu.activate');
         Route::post('/menu/{menuItem}/sub-varieties', [MenuController::class, 'storeSubVariety'])->name('menu.sub-varieties.store');
 
         // Category management

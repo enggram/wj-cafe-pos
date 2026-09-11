@@ -73,6 +73,16 @@ class MenuController extends Controller
     }
 
     /**
+     * Activate (restore) a deactivated menu item.
+     */
+    public function activate(int $id)
+    {
+        $this->menuService->activateItem($id);
+
+        return redirect()->back()->with('success', 'Menu item activated successfully.');
+    }
+
+    /**
      * Create a sub-variety for a menu item.
      */
     public function storeSubVariety(Request $request, int $menuItem)

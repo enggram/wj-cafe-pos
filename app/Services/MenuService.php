@@ -50,10 +50,18 @@ class MenuService implements MenuServiceInterface
         $menuItem->update(['is_active' => false]);
     }
 
+    public function activateItem(int $id): void
+    {
+        $menuItem = MenuItem::findOrFail($id);
+        $menuItem->update(['is_active' => true]);
+    }
+
     public function listByCategory(): Collection
     {
         return Category::with(['menuItems' => function ($query) {
-            $query->where('is_active', true);
+            // Include inactive items too so they can be reactivated from the UI.
+            // Active ones listed first, then alphabetically.
+            $query->orderByDesc('is_active')->orderBy('name');
         }, 'menuItems.subVarieties' => function ($query) {
             $query->where('is_active', true);
         }])->get();
